@@ -3255,11 +3255,19 @@
     renderSnippet();
     updateHeaderButtons();
     saveState();
+    // Re-size the preview frame whenever the editor view renders. Covers
+    // transitions from home or settings → editor, where the preview-stage
+    // was display:none and bail-out logic in sizePreviewFrame skipped it.
+    requestAnimationFrame(() => {
+      if (typeof sizePreviewFrame === 'function') sizePreviewFrame();
+    });
   }
 
   function renderNav() {
     const tours = tourListCache;
-    const activeId = state ? state.id : null;
+    // Only highlight a tour as active when actually editing one; on the
+    // home or settings view, no tour is "selected" in the nav.
+    const activeId = (state && currentView === 'editor') ? state.id : null;
 
     // Show search if 5+ tours
     $navSearchWrap.classList.toggle('show', tours.length >= 5);
