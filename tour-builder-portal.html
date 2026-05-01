@@ -382,6 +382,11 @@
     transition: opacity 0.15s;
   }
   .tour-row.active::before { opacity: 1; }
+  /* Reorder animation — applied transiently when a tour moves position
+     in the nav (e.g. an edit bumps its updated_at and pushes it to the top). */
+  .tour-row.flipping {
+    transition: transform 0.32s cubic-bezier(0.2, 0, 0.2, 1);
+  }
 
   /* Legacy dot — hidden, kept in markup for backward compatibility */
   .tour-row-dot { display: none; }
@@ -1358,18 +1363,18 @@
     display: flex; gap: 4px; flex-shrink: 0;
   }
   .preview-tt-meta {
-    font-size: 9px; font-weight: 600;
+    font-size: 14px; font-weight: 600;
     color: var(--caption);
     text-transform: uppercase; letter-spacing: 0.04em;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
   }
   .preview-tt-title {
-    font-size: 12px; font-weight: 600;
-    line-height: 1.3; margin-bottom: 2px;
+    font-size: 18px; font-weight: 600;
+    line-height: 1.3; margin-bottom: 3px;
   }
   .preview-tt-title.empty { color: var(--caption); font-style: italic; font-weight: 400; }
   .preview-tt-desc {
-    font-size: 11px; line-height: 1.45;
+    font-size: 17px; line-height: 1.45;
     color: var(--caption);
   }
   .preview-tt-desc.empty { font-style: italic; }
@@ -2949,6 +2954,13 @@
     // Empty state
     $navToursEmpty.classList.toggle('show', tours.length === 0);
 
+    // FLIP: capture each existing row's vertical position before re-render so
+    // we can animate any reorder caused by an edit bumping updated_at.
+    const oldPositions = new Map();
+    Array.from($navTours.querySelectorAll('.tour-row')).forEach(r => {
+      oldPositions.set(r.dataset.tourId, r.getBoundingClientRect().top);
+    });
+
     $navTours.innerHTML = filtered.map(t => {
       const isActive = t.id === activeId;
       const stepCount = (t.steps || []).length;
@@ -2967,6 +2979,26 @@
         </div>
       `;
     }).join('');
+
+    // FLIP: for each row that was already in the list and has moved, snap
+    // it back to its old position with no transition, then animate to its
+    // new position via the .flipping CSS class.
+    Array.from($navTours.querySelectorAll('.tour-row')).forEach(r => {
+      const oldTop = oldPositions.get(r.dataset.tourId);
+      if (oldTop === undefined) return;
+      const dy = oldTop - r.getBoundingClientRect().top;
+      if (Math.abs(dy) < 1) return;
+      r.style.transform = `translateY(${dy}px)`;
+      requestAnimationFrame(() => {
+        r.classList.add('flipping');
+        r.style.transform = '';
+        const onEnd = () => {
+          r.classList.remove('flipping');
+          r.removeEventListener('transitionend', onEnd);
+        };
+        r.addEventListener('transitionend', onEnd);
+      });
+    });
 
     // Highlight settings as active when in settings view
     $settingsNavBtn.classList.toggle('active', currentView === 'settings');
