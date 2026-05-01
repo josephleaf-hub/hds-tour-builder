@@ -2053,8 +2053,8 @@
         Preview
       </button>
       <button class="btn btn-primary" id="embedBtn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-        Embed code
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+        Publish
       </button>
       <div class="header-user">
         <span class="header-user-email" id="headerUserEmail" title=""></span>
@@ -2477,6 +2477,9 @@
     },
 
     async save(tour) {
+      // Auto-save only: writes to the database but does NOT publish to the
+      // tour-configs bucket. Publishing is an explicit action via the
+      // Publish button so embedded tours don't update mid-edit.
       const row = this._toRow(tour);
       row.updated_at = new Date().toISOString();
       const { data, error } = await supabaseClient
@@ -2485,11 +2488,7 @@
         .select()
         .single();
       if (error) throw error;
-      const result = this._fromDb(data);
-      // Publish a JSON snapshot for embeds. Best-effort; don't fail the
-      // save if the storage write is slow or blocked.
-      publishTourConfig(result).catch(e => console.error('[publish] save failed:', e));
-      return result;
+      return this._fromDb(data);
     },
 
     async create(title) {
@@ -2504,7 +2503,6 @@
       if (error) throw error;
       const tour = this._fromDb(data);
       this.setActiveId(tour.id);
-      publishTourConfig(tour).catch(e => console.error('[publish] create failed:', e));
       return tour;
     },
 
@@ -2522,7 +2520,6 @@
       if (error) throw error;
       const tour = this._fromDb(data);
       this.setActiveId(tour.id);
-      publishTourConfig(tour).catch(e => console.error('[publish] duplicate failed:', e));
       return tour;
     },
 
@@ -3278,7 +3275,7 @@
     $previewBtn.disabled = !valid;
     $embedBtn.disabled = !valid;
     $previewBtn.title = valid ? '' : 'Add at least one complete step (image + title + caption) to preview';
-    $embedBtn.title   = valid ? '' : 'Add at least one complete step (image + title + caption) to get embed code';
+    $embedBtn.title   = valid ? '' : 'Add at least one complete step (image + title + caption) to publish';
   }
 
   function renderSnippet() {
@@ -3985,17 +3982,24 @@
   }
   $embedBtn.addEventListener('click', async () => {
     if ($embedBtn.disabled) return;
-    // Make sure the published JSON reflects the latest state before the
-    // user copies the embed snippet — flush any pending debounced save,
-    // then publish synchronously.
+    // Flush any pending debounced save first so the published snapshot
+    // matches the latest in-memory state, then push the JSON snapshot to
+    // the tour-configs bucket. This is the only path that publishes —
+    // auto-save does not.
     await flushPendingSave();
+    let publishErr = null;
     try {
       await publishTourConfig(state);
     } catch (e) {
-      console.error('[publish] embed-open failed:', e);
-      showToast('Could not publish tour — embed may show stale data');
+      publishErr = e;
+      console.error('[publish] failed:', e);
     }
     openDrawer();
+    if (publishErr) {
+      showToast('Publish failed — embed may show stale data');
+    } else {
+      showToast('Published');
+    }
   });
   $drawerClose.addEventListener('click', closeDrawer);
   $drawerBackdrop.addEventListener('click', closeDrawer);
