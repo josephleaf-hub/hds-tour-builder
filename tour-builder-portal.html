@@ -2568,11 +2568,19 @@
     const validSteps = (tour.steps || []).filter(s => s.image && s.title);
     const config = { title: tour.title || 'Tour', steps: validSteps };
     const blob = new Blob([JSON.stringify(config)], { type: 'application/json' });
+    const path = `${tour.id}.json`;
+    // Use remove + upload instead of upload({ upsert: true }). Supabase's
+    // upsert path runs INSERT ... ON CONFLICT UPDATE, which evaluates both
+    // INSERT and UPDATE RLS policies. The two-step version only needs
+    // INSERT + DELETE, which is simpler to keep healthy.
+    await supabaseClient.storage
+      .from(TOUR_CONFIG_BUCKET)
+      .remove([path])
+      .catch(() => {}); // no-op if file doesn't exist
     const { error } = await supabaseClient.storage
       .from(TOUR_CONFIG_BUCKET)
-      .upload(`${tour.id}.json`, blob, {
+      .upload(path, blob, {
         contentType: 'application/json',
-        upsert: true,
         cacheControl: '60',
       });
     if (error) throw error;
