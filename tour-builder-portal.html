@@ -1604,6 +1604,58 @@
     display: flex; flex-direction: column; gap: 18px;
   }
 
+  /* Drawer status banner — replaces toast for publish feedback */
+  .drawer-banner {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .drawer-banner svg { flex-shrink: 0; }
+  .drawer-banner.success {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid #B8DCC8;
+  }
+  .drawer-banner.error {
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid #F5C6BC;
+  }
+
+  /* Publish button states — animated transition between Publish (blue,
+     unpublished changes) and Published (green, in sync). */
+  #embedBtn {
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+  }
+  #embedBtn[data-state="published"] {
+    background: var(--success);
+    border-color: var(--success);
+    color: #FFF;
+  }
+  #embedBtn[data-state="published"]:hover {
+    background: #266B45;
+    border-color: #266B45;
+  }
+  #embedBtn .btn-icon {
+    display: inline-flex;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  #embedBtn[data-state="published"] .btn-icon {
+    transform: scale(1.05);
+  }
+  #embedBtn .btn-label {
+    transition: opacity 0.18s ease;
+  }
+  #embedBtn.label-swap .btn-label {
+    opacity: 0;
+  }
+
   .drawer-section {
     display: flex; flex-direction: column; gap: 8px;
   }
@@ -2052,9 +2104,9 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
         Preview
       </button>
-      <button class="btn btn-primary" id="embedBtn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
-        Publish
+      <button class="btn btn-primary" id="embedBtn" data-state="pending">
+        <span class="btn-icon" id="embedBtnIcon"></span>
+        <span class="btn-label" id="embedBtnLabel">Publish</span>
       </button>
       <div class="header-user">
         <span class="header-user-email" id="headerUserEmail" title=""></span>
@@ -2249,6 +2301,11 @@
     </button>
   </header>
   <div class="drawer-body">
+
+    <div class="drawer-banner success" id="drawerBanner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span id="drawerBannerText">Tour published</span>
+    </div>
 
     <div class="drawer-section">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2666,6 +2723,8 @@
     }
     state = tour;
     state.activeStepIdx = 0;
+    // Fresh load — assume in sync with the last published version.
+    hasUnpublishedChanges = false;
     renderAll();
   }
 
@@ -2674,6 +2733,11 @@
   // =========================================================================
   // Populated by bootstrapTours() once auth completes.
   let state = null;
+
+  // True when the active tour has edits not yet pushed to the tour-configs
+  // bucket. Drives the Publish/Published button state. Reset on bootstrap,
+  // tour switch, and successful publish.
+  let hasUnpublishedChanges = false;
 
   let settings = loadSettings() || {
     cssUrl: 'https://hds-tour.joseph-leaf.workers.dev/hds-tour-lightbox.css',
@@ -2706,6 +2770,11 @@
   let saveTimer = null;
   function saveState() {
     if (!state || !state.id) return;
+    // Any user edit makes the active tour out of sync with what's published.
+    if (!hasUnpublishedChanges) {
+      hasUnpublishedChanges = true;
+      updatePublishButton();
+    }
 
     // Mirror state into the nav cache so renderNav reflects the change.
     const idx = tourListCache.findIndex(t => t.id === state.id);
@@ -2752,6 +2821,8 @@
     tourStore.setActiveId(id);
     state = next;
     state.activeStepIdx = 0;
+    // Assume the freshly-loaded tour is in sync with what's published.
+    hasUnpublishedChanges = false;
     renderAll();
   }
 
@@ -3272,9 +3343,52 @@
   function updateHeaderButtons() {
     const valid = hasValidStep();
     $previewBtn.disabled = !valid;
-    $embedBtn.disabled = !valid;
     $previewBtn.title = valid ? '' : 'Add at least one complete step (image + title + caption) to preview';
-    $embedBtn.title   = valid ? '' : 'Add at least one complete step (image + title + caption) to publish';
+    updatePublishButton();
+  }
+
+  // SVG snippets for the publish button, swapped based on state.
+  const PUBLISH_ICON_PENDING =
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>';
+  const PUBLISH_ICON_PUBLISHED =
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  function updatePublishButton() {
+    const valid = hasValidStep();
+    const iconEl = document.getElementById('embedBtnIcon');
+    const labelEl = document.getElementById('embedBtnLabel');
+    if (!iconEl || !labelEl) return;
+
+    if (!valid) {
+      $embedBtn.disabled = true;
+      $embedBtn.dataset.state = 'pending';
+      iconEl.innerHTML = PUBLISH_ICON_PENDING;
+      labelEl.textContent = 'Publish';
+      $embedBtn.title = 'Add at least one complete step (image + title + caption) to publish';
+      return;
+    }
+
+    $embedBtn.disabled = false;
+    if (hasUnpublishedChanges) {
+      $embedBtn.dataset.state = 'pending';
+      iconEl.innerHTML = PUBLISH_ICON_PENDING;
+      labelEl.textContent = 'Publish';
+      $embedBtn.title = '';
+    } else {
+      $embedBtn.dataset.state = 'published';
+      iconEl.innerHTML = PUBLISH_ICON_PUBLISHED;
+      labelEl.textContent = 'Published';
+      $embedBtn.title = 'No changes since last publish — click to view embed code';
+    }
+  }
+
+  function setDrawerBanner(text, type) {
+    const banner = document.getElementById('drawerBanner');
+    const textEl = document.getElementById('drawerBannerText');
+    if (!banner || !textEl) return;
+    banner.classList.remove('success', 'error');
+    banner.classList.add(type === 'error' ? 'error' : 'success');
+    textEl.textContent = text;
   }
 
   function renderSnippet() {
@@ -3981,10 +4095,18 @@
   }
   $embedBtn.addEventListener('click', async () => {
     if ($embedBtn.disabled) return;
+
+    // No unpublished changes — open the drawer to view the existing embed
+    // code, but skip the publish round-trip.
+    if (!hasUnpublishedChanges) {
+      setDrawerBanner('Tour is published', 'success');
+      openDrawer();
+      return;
+    }
+
     // Flush any pending debounced save first so the published snapshot
     // matches the latest in-memory state, then push the JSON snapshot to
-    // the tour-configs bucket. This is the only path that publishes —
-    // auto-save does not.
+    // the tour-configs bucket.
     await flushPendingSave();
     let publishErr = null;
     try {
@@ -3993,12 +4115,14 @@
       publishErr = e;
       console.error('[publish] failed:', e);
     }
-    openDrawer();
     if (publishErr) {
-      showToast('Publish failed — embed may show stale data');
+      setDrawerBanner('Publish failed — embed may show stale data', 'error');
     } else {
-      showToast('Published');
+      hasUnpublishedChanges = false;
+      updatePublishButton();
+      setDrawerBanner('Tour published', 'success');
     }
+    openDrawer();
   });
   $drawerClose.addEventListener('click', closeDrawer);
   $drawerBackdrop.addEventListener('click', closeDrawer);
