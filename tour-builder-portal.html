@@ -2965,6 +2965,7 @@
   }
 
   function applyHighlight() {
+    if (!state) return; // bootstrap hasn't populated state yet
     const step = state.steps[state.activeStepIdx];
     if (!step) return;
 
