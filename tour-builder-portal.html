@@ -4540,15 +4540,57 @@
     $veZoomDisplay.textContent = Math.round(veViewport.zoom * 100) + '%';
   }
 
-  // Zoom button handlers
-  $veZoomIn.addEventListener('click', () => {
-    veViewport.zoom = Math.min(8, veViewport.zoom * 1.25);
+  // Clamp pan so the image always covers the visible stage when zoomed in,
+  // and snap to image edges / centre when within a small pixel threshold.
+  // Without this, dragging could push the image entirely off-screen.
+  function clampVePan() {
+    if (!$veImg.naturalWidth) return;
+    const rect = $veStage.getBoundingClientRect();
+    const z = veFitScale * veViewport.zoom;
+    const imgW = $veImg.naturalWidth * z;
+    const imgH = $veImg.naturalHeight * z;
+    const SNAP_PX = 8;
+
+    if (imgW > rect.width) {
+      const max = (imgW - rect.width) / (2 * imgW);
+      veViewport.panX = Math.max(-max, Math.min(max, veViewport.panX));
+      const snap = SNAP_PX / imgW;
+      if (Math.abs(veViewport.panX) < snap) veViewport.panX = 0;
+      else if (Math.abs(veViewport.panX - max) < snap) veViewport.panX = max;
+      else if (Math.abs(veViewport.panX + max) < snap) veViewport.panX = -max;
+    } else {
+      veViewport.panX = 0;
+    }
+
+    if (imgH > rect.height) {
+      const max = (imgH - rect.height) / (2 * imgH);
+      veViewport.panY = Math.max(-max, Math.min(max, veViewport.panY));
+      const snap = SNAP_PX / imgH;
+      if (Math.abs(veViewport.panY) < snap) veViewport.panY = 0;
+      else if (Math.abs(veViewport.panY - max) < snap) veViewport.panY = max;
+      else if (Math.abs(veViewport.panY + max) < snap) veViewport.panY = -max;
+    } else {
+      veViewport.panY = 0;
+    }
+  }
+
+  // 10% zoom steps. Buttons, keyboard, and trackpad all use these so the
+  // displayed zoom is always a clean multiple of 10%.
+  function stepZoomIn() {
+    const next = Math.round((veViewport.zoom + 0.1) * 10) / 10;
+    veViewport.zoom = Math.min(8, next);
+    clampVePan();
     applyVeTransform();
-  });
-  $veZoomOut.addEventListener('click', () => {
-    veViewport.zoom = Math.max(0.25, veViewport.zoom / 1.25);
+  }
+  function stepZoomOut() {
+    const next = Math.round((veViewport.zoom - 0.1) * 10) / 10;
+    veViewport.zoom = Math.max(0.1, next);
+    clampVePan();
     applyVeTransform();
-  });
+  }
+
+  $veZoomIn.addEventListener('click', stepZoomIn);
+  $veZoomOut.addEventListener('click', stepZoomOut);
   $veFitBtn.addEventListener('click', () => {
     veViewport = { zoom: 1, panX: 0, panY: 0 };
     applyVeTransform();
@@ -4586,6 +4628,7 @@
     const dy = (e.clientY - vePanState.startY) / ($veImg.naturalHeight * z);
     veViewport.panX = vePanState.origPanX + dx;
     veViewport.panY = vePanState.origPanY + dy;
+    clampVePan();
     applyVeTransform();
   });
 
@@ -4595,14 +4638,19 @@
     $veStage.classList.remove('dragging');
   });
 
-  // Scroll-to-zoom
+  // Throttled wheel zoom — one 10% step per ~80ms regardless of how many
+  // events the trackpad fires. Without this a small two-finger swipe
+  // produces a flurry of compounding zoom changes.
+  let veLastWheelTime = 0;
   $veStage.addEventListener('wheel', e => {
     if (!$veModalBg.classList.contains('active')) return;
     e.preventDefault();
-    const delta = -e.deltaY;
-    const factor = delta > 0 ? 1.1 : 1 / 1.1;
-    veViewport.zoom = Math.max(0.25, Math.min(8, veViewport.zoom * factor));
-    applyVeTransform();
+    const now = Date.now();
+    if (now - veLastWheelTime < 80) return;
+    if (Math.abs(e.deltaY) < 4) return;
+    veLastWheelTime = now;
+    if (e.deltaY < 0) stepZoomIn();
+    else stepZoomOut();
   }, { passive: false });
 
   // Keyboard: Esc closes, +/- zoom
@@ -4613,10 +4661,10 @@
       closeViewEditor();
     } else if (e.key === '+' || e.key === '=') {
       e.preventDefault();
-      $veZoomIn.click();
+      stepZoomIn();
     } else if (e.key === '-' || e.key === '_') {
       e.preventDefault();
-      $veZoomOut.click();
+      stepZoomOut();
     } else if (e.key === 'Enter') {
       e.preventDefault();
       saveViewEditor();
