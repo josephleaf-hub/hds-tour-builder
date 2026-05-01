@@ -2578,7 +2578,7 @@
       .from(TOUR_CONFIG_BUCKET)
       .upload(path, blob, {
         contentType: 'application/json',
-        cacheControl: '60',
+        cacheControl: '5',
       });
     if (error) throw error;
   }
