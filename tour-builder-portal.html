@@ -1085,6 +1085,147 @@
     background: var(--border);
   }
 
+  /* Auth — login screen, loading, and header user badge */
+  body.auth-pending #app,
+  body.auth-pending #loginScreen { display: none; }
+  body.auth-signed-out #app { display: none; }
+  body.auth-signed-out #loginScreen { display: flex; }
+  body.auth-signed-in #loginScreen,
+  body.auth-signed-in #authLoading { display: none; }
+  body:not(.auth-pending) #authLoading { display: none; }
+
+  #authLoading {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-app);
+    z-index: 1000;
+  }
+  .auth-loading-spinner {
+    width: 28px; height: 28px;
+    border: 3px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: image-uploader-spin 0.7s linear infinite;
+  }
+
+  #loginScreen {
+    position: fixed; inset: 0;
+    align-items: center; justify-content: center;
+    background: var(--bg-app);
+    z-index: 999;
+  }
+  .login-card {
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .login-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .login-logo { width: 36px; height: 36px; }
+  .login-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+  .login-form {
+    display: flex;
+    flex-direction: column;
+  }
+  .login-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+  .login-label:first-child { margin-top: 0; }
+  .login-input {
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-1);
+    background: #fff;
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .login-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--blue-pale);
+  }
+  .login-error {
+    margin-top: 12px;
+    padding: 8px 10px;
+    background: var(--error-bg);
+    border: 1px solid #F5C6BC;
+    border-radius: 6px;
+    color: var(--error);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .login-submit {
+    margin-top: 18px;
+    padding: 10px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--blue);
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .login-submit:hover { background: var(--blue-hover); }
+  .login-submit:disabled {
+    background: var(--border-strong);
+    cursor: not-allowed;
+  }
+
+  .header-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 4px;
+    padding-left: 12px;
+    border-left: 1px solid var(--border);
+  }
+  .header-user-email {
+    font-size: 12px;
+    color: var(--text-2);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header-signout {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .header-signout:hover {
+    background: var(--bg-alt);
+    color: var(--text-1);
+    border-color: var(--text-2);
+  }
+
   /* Sensitive-info warning inside the Redactions section */
   .redaction-warning {
     display: flex;
@@ -1824,7 +1965,28 @@
   }
 </style>
 </head>
-<body>
+<body class="auth-pending">
+
+<!-- ============ AUTH ============ -->
+<div id="authLoading">
+  <div class="auth-loading-spinner"></div>
+</div>
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <img src="https://cdn.prod.website-files.com/69d48f8e8f01871806e7f5c4/69f3462872bd40b9396f5200_Artboard%2011.svg" alt="HDS" class="login-logo" />
+      <div class="login-title">Tour Builder</div>
+    </div>
+    <form class="login-form" id="loginForm" autocomplete="on">
+      <label class="login-label" for="loginEmail">Email</label>
+      <input class="login-input" id="loginEmail" type="email" autocomplete="email" required />
+      <label class="login-label" for="loginPassword">Password</label>
+      <input class="login-input" id="loginPassword" type="password" autocomplete="current-password" required />
+      <div class="login-error" id="loginError" hidden></div>
+      <button class="login-submit" id="loginSubmit" type="submit">Sign in</button>
+    </form>
+  </div>
+</div>
 
 <div class="app" id="app">
 
@@ -1894,6 +2056,10 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         Embed code
       </button>
+      <div class="header-user">
+        <span class="header-user-email" id="headerUserEmail" title=""></span>
+        <button class="header-signout" id="headerSignOut" type="button">Sign out</button>
+      </div>
     </div>
   </header>
 
@@ -2155,6 +2321,76 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5YmduZ3FoZWZramNub3RvaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzIzMDQsImV4cCI6MjA5MzE0ODMwNH0.esCFVDxm1qEpPBF5b2c8VKt3h80EGhr_3hcEw59PsNA';
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   console.log('[supabase] client ready:', supabaseClient);
+
+  // =========================================================================
+  // AUTH — sign-in gate
+  // =========================================================================
+  function applyAuthState(session) {
+    const body = document.body;
+    if (session && session.user) {
+      body.classList.remove('auth-pending', 'auth-signed-out');
+      body.classList.add('auth-signed-in');
+      const emailEl = document.getElementById('headerUserEmail');
+      if (emailEl) {
+        emailEl.textContent = session.user.email || '';
+        emailEl.title = session.user.email || '';
+      }
+    } else {
+      body.classList.remove('auth-pending', 'auth-signed-in');
+      body.classList.add('auth-signed-out');
+      const errEl = document.getElementById('loginError');
+      if (errEl) { errEl.hidden = true; errEl.textContent = ''; }
+      const passEl = document.getElementById('loginPassword');
+      if (passEl) passEl.value = '';
+    }
+  }
+
+  (async () => {
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      applyAuthState(data && data.session);
+    } catch {
+      applyAuthState(null);
+    }
+  })();
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    applyAuthState(session);
+  });
+
+  document.addEventListener('submit', async e => {
+    if (e.target.id !== 'loginForm') return;
+    e.preventDefault();
+    const emailInput = document.getElementById('loginEmail');
+    const passInput = document.getElementById('loginPassword');
+    const errEl = document.getElementById('loginError');
+    const submitBtn = document.getElementById('loginSubmit');
+    const email = (emailInput.value || '').trim();
+    const password = passInput.value || '';
+    errEl.hidden = true;
+    errEl.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in…';
+    try {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        errEl.textContent = error.message || 'Sign-in failed.';
+        errEl.hidden = false;
+      }
+    } catch (err) {
+      errEl.textContent = (err && err.message) || 'Sign-in failed.';
+      errEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign in';
+    }
+  });
+
+  document.body.addEventListener('click', e => {
+    if (e.target.closest('#headerSignOut')) {
+      supabaseClient.auth.signOut();
+    }
+  });
 
   // =========================================================================
   // DATA LAYER — abstraction so we can swap to a real DB later
