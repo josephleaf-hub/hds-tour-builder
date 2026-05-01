@@ -2325,24 +2325,35 @@
   // =========================================================================
   // AUTH — sign-in gate
   // =========================================================================
-  function applyAuthState(session) {
+  async function applyAuthState(session) {
     const body = document.body;
     if (session && session.user) {
-      const wasHidden = !body.classList.contains('auth-signed-in');
-      body.classList.remove('auth-pending', 'auth-signed-out');
-      body.classList.add('auth-signed-in');
+      const isFirstSignIn = !body.classList.contains('auth-signed-in');
+      body.classList.remove('auth-signed-out');
+
       const emailEl = document.getElementById('headerUserEmail');
       if (emailEl) {
         emailEl.textContent = session.user.email || '';
         emailEl.title = session.user.email || '';
       }
-      // The preview frame is sized via JS by sizePreviewFrame(), which
-      // runs on page load and on window resize. While the app was hidden
-      // behind the auth gate it had zero dimensions, so the initial sizing
-      // bailed out. Re-run after layout settles.
-      if (wasHidden && typeof sizePreviewFrame === 'function') {
+
+      if (isFirstSignIn) {
+        // Keep the loading spinner up while tours are fetched from Supabase
+        // (or migrated from localStorage on first run). Swap to the editor
+        // only once `state` is populated and the first render has happened.
+        body.classList.add('auth-pending');
+        try {
+          if (typeof bootstrapTours === 'function') await bootstrapTours();
+        } catch (e) {
+          console.error('[bootstrap] failed:', e);
+        }
+        body.classList.remove('auth-pending');
+        body.classList.add('auth-signed-in');
+        // The preview frame is sized via JS; while the app was hidden
+        // behind the auth gate it had zero dimensions, so re-run after
+        // layout settles.
         requestAnimationFrame(() => {
-          sizePreviewFrame();
+          if (typeof sizePreviewFrame === 'function') sizePreviewFrame();
           if (typeof applyHighlight === 'function') applyHighlight();
         });
       }
@@ -2404,174 +2415,215 @@
   });
 
   // =========================================================================
-  // DATA LAYER — abstraction so we can swap to a real DB later
+  // DATA LAYER — Supabase-backed tour persistence
   // =========================================================================
-  const STORAGE_KEY = 'hds-tour-builder-v3';
   const SETTINGS_KEY = 'hds-tour-builder-settings-v2';
-  const LEGACY_KEY = 'hds-tour-builder-v2';
+  const LEGACY_LOCAL_KEY = 'hds-tour-builder-v3';
+  const ACTIVE_ID_KEY = 'hds-tour-active-id-v4';
+  const MIGRATION_FLAG_KEY = 'hds-tour-migrated-to-supabase-v1';
 
-  // tourStore: the single source of truth for tour data.
-  // Keep all DB-shaped operations here. When we migrate to an API,
-  // this is the only file that needs to change.
+  // tourStore: persistence layer for tours.
+  // Tour rows live in the Supabase `tours` table. activeId is per-device UI
+  // state and stays in localStorage (so each device remembers which tour it
+  // was last editing).
   const tourStore = {
-    _data: null,
-
-    _load() {
-      if (this._data) return this._data;
-      try {
-        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-        if (raw && raw.tours) {
-          this._data = raw;
-          return this._data;
-        }
-      } catch {}
-      // Migration from v2 → v3 (single tour → multiple tours)
-      try {
-        const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
-        if (legacy && legacy.steps) {
-          const id = this._uid();
-          this._data = {
-            tours: {
-              [id]: {
-                id,
-                title: legacy.title || 'Untitled tour',
-                steps: legacy.steps,
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-              }
-            },
-            activeTourId: id
-          };
-          this._save();
-          return this._data;
-        }
-      } catch {}
-      // Fresh install — create one starter tour
-      const id = this._uid();
-      this._data = {
-        tours: {
-          [id]: {
-            id,
-            title: 'Untitled tour',
-            steps: [{ image: '', title: '', caption: '' }],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          }
-        },
-        activeTourId: id
+    _fromDb(row) {
+      return {
+        id: row.id,
+        title: row.title,
+        steps: row.steps || [],
+        createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+        updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now(),
       };
-      this._save();
-      return this._data;
     },
 
-    _save() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this._data));
+    _toRow(tour) {
+      return {
+        id: tour.id,
+        title: tour.title,
+        steps: tour.steps || [],
+      };
     },
 
-    _uid() {
-      return 'tour-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+    async list() {
+      const { data, error } = await supabaseClient
+        .from('tours')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return (data || []).map(this._fromDb);
     },
 
-    list() {
-      const d = this._load();
-      return Object.values(d.tours).sort((a, b) => b.updatedAt - a.updatedAt);
-    },
-
-    get(id) {
-      const d = this._load();
-      return d.tours[id] || null;
+    async get(id) {
+      if (!id) return null;
+      const { data, error } = await supabaseClient
+        .from('tours')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? this._fromDb(data) : null;
     },
 
     activeId() {
-      return this._load().activeTourId;
+      try { return localStorage.getItem(ACTIVE_ID_KEY); } catch { return null; }
     },
 
     setActiveId(id) {
-      const d = this._load();
-      if (d.tours[id]) {
-        d.activeTourId = id;
-        this._save();
-      }
+      try {
+        if (id) localStorage.setItem(ACTIVE_ID_KEY, id);
+        else localStorage.removeItem(ACTIVE_ID_KEY);
+      } catch {}
     },
 
-    save(tour) {
-      const d = this._load();
-      tour.updatedAt = Date.now();
-      d.tours[tour.id] = tour;
-      this._save();
+    async save(tour) {
+      const row = this._toRow(tour);
+      row.updated_at = new Date().toISOString();
+      const { data, error } = await supabaseClient
+        .from('tours')
+        .upsert(row)
+        .select()
+        .single();
+      if (error) throw error;
+      return this._fromDb(data);
     },
 
-    create(title) {
-      const d = this._load();
-      const id = this._uid();
-      const tour = {
-        id,
-        title: title || 'Untitled tour',
-        steps: [{ image: '', title: '', caption: '' }],
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-      d.tours[id] = tour;
-      d.activeTourId = id;
-      this._save();
+    async create(title) {
+      const { data, error } = await supabaseClient
+        .from('tours')
+        .insert({
+          title: title || 'Untitled tour',
+          steps: [{ image: '', title: '', caption: '' }],
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      const tour = this._fromDb(data);
+      this.setActiveId(tour.id);
       return tour;
     },
 
-    duplicate(id) {
-      const original = this.get(id);
+    async duplicate(id) {
+      const original = await this.get(id);
       if (!original) return null;
-      const d = this._load();
-      const newId = this._uid();
-      const copy = {
-        ...JSON.parse(JSON.stringify(original)),
-        id: newId,
-        title: original.title + ' (copy)',
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-      d.tours[newId] = copy;
-      d.activeTourId = newId;
-      this._save();
-      return copy;
+      const { data, error } = await supabaseClient
+        .from('tours')
+        .insert({
+          title: original.title + ' (copy)',
+          steps: JSON.parse(JSON.stringify(original.steps)),
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      const tour = this._fromDb(data);
+      this.setActiveId(tour.id);
+      return tour;
     },
 
-    delete(id) {
-      const d = this._load();
-      delete d.tours[id];
-      // If we deleted the active tour, switch to the most recent remaining one
-      if (d.activeTourId === id) {
-        const remaining = Object.values(d.tours).sort((a, b) => b.updatedAt - a.updatedAt);
+    async delete(id) {
+      const { error } = await supabaseClient
+        .from('tours')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      // If we just deleted the active tour, fall back to the most recent
+      // remaining one — or create a fresh starter if none left.
+      if (this.activeId() === id) {
+        const remaining = await this.list();
         if (remaining.length > 0) {
-          d.activeTourId = remaining[0].id;
+          this.setActiveId(remaining[0].id);
         } else {
-          // Create a new empty one if we just deleted the last tour
-          const fresh = this._uid();
-          d.tours[fresh] = {
-            id: fresh,
-            title: 'Untitled tour',
-            steps: [{ image: '', title: '', caption: '' }],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          };
-          d.activeTourId = fresh;
+          await this.create('Untitled tour');
         }
       }
-      this._save();
     },
 
-    rename(id, newTitle) {
-      const tour = this.get(id);
-      if (!tour) return;
-      tour.title = newTitle;
-      this.save(tour);
+    async rename(id, newTitle) {
+      const { error } = await supabaseClient
+        .from('tours')
+        .update({ title: newTitle, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
     },
   };
+
+  // Cached list of all tours, used by renderNav and settings view for
+  // synchronous rendering. Refresh after creates/duplicates/deletes/renames.
+  let tourListCache = [];
+  async function refreshTourList() {
+    try {
+      tourListCache = await tourStore.list();
+    } catch (e) {
+      console.error('[tours] refresh failed:', e);
+    }
+  }
+
+  // One-time migration: if legacy localStorage v3 tours exist and Supabase
+  // is empty, upload them. Marked done with a flag so we never run twice.
+  async function migrateLegacyToursIfNeeded() {
+    if (localStorage.getItem(MIGRATION_FLAG_KEY) === 'true') return;
+    try {
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_LOCAL_KEY) || 'null');
+      if (!legacy || !legacy.tours) {
+        localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
+        return;
+      }
+      const existing = await tourStore.list();
+      if (existing.length > 0) {
+        // Supabase already has tours — don't double up. Just mark done.
+        localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
+        return;
+      }
+      const legacyTours = Object.values(legacy.tours);
+      for (const t of legacyTours) {
+        await supabaseClient.from('tours').insert({
+          title: t.title || 'Untitled tour',
+          steps: t.steps || [],
+          created_at: t.createdAt ? new Date(t.createdAt).toISOString() : null,
+          updated_at: t.updatedAt ? new Date(t.updatedAt).toISOString() : null,
+        });
+      }
+      localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
+      console.log(`[migration] uploaded ${legacyTours.length} tour(s) from localStorage to Supabase`);
+    } catch (e) {
+      console.error('[migration] failed:', e);
+    }
+  }
+
+  // Bootstrap: fetch the active tour into `state` after auth completes.
+  // Falls back to most-recent tour, or creates a fresh starter if none exist.
+  async function bootstrapTours() {
+    await migrateLegacyToursIfNeeded();
+    await refreshTourList();
+
+    const wantedId = tourStore.activeId();
+    let tour = null;
+    if (wantedId) {
+      try { tour = await tourStore.get(wantedId); } catch (e) { console.error('[bootstrap] get failed:', e); }
+    }
+    if (!tour && tourListCache.length > 0) {
+      tour = tourListCache[0];
+      tourStore.setActiveId(tour.id);
+    }
+    if (!tour) {
+      try {
+        tour = await tourStore.create('Untitled tour');
+        await refreshTourList();
+      } catch (e) {
+        console.error('[bootstrap] create failed:', e);
+        return;
+      }
+    }
+    state = tour;
+    state.activeStepIdx = 0;
+    renderAll();
+  }
 
   // =========================================================================
   // VIEW STATE
   // =========================================================================
-  let state = tourStore.get(tourStore.activeId()) || tourStore.list()[0];
-  state.activeStepIdx = 0; // not persisted, just UI state
+  // Populated by bootstrapTours() once auth completes.
+  let state = null;
 
   let settings = loadSettings() || {
     cssUrl: 'https://hds-tour.joseph-leaf.workers.dev/hds-tour-lightbox.css',
@@ -2597,15 +2649,55 @@
   function saveSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }
+  // Debounced save. Edits hit local `state` immediately (responsive UI);
+  // the network round-trip is deferred so a flurry of keystrokes coalesces
+  // into a single Supabase write. Also mirrors the change into the nav
+  // cache so the sidebar's title/step-count stay accurate without refetch.
+  let saveTimer = null;
   function saveState() {
     if (!state || !state.id) return;
-    // Strip non-persistent UI state before saving
-    const { activeStepIdx, ...persistent } = state;
-    tourStore.save(persistent);
+
+    // Mirror state into the nav cache so renderNav reflects the change.
+    const idx = tourListCache.findIndex(t => t.id === state.id);
+    const snapshot = {
+      id: state.id,
+      title: state.title,
+      steps: state.steps,
+      createdAt: state.createdAt,
+      updatedAt: Date.now(),
+    };
+    if (idx === -1) tourListCache.unshift(snapshot);
+    else tourListCache[idx] = snapshot;
+    tourListCache.sort((a, b) => b.updatedAt - a.updatedAt);
+
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      saveTimer = null;
+      const { activeStepIdx, ...persistent } = state;
+      try {
+        await tourStore.save(persistent);
+      } catch (e) {
+        console.error('[save] failed:', e);
+        if (typeof showToast === 'function') showToast('Save failed — check connection');
+      }
+    }, 600);
   }
-  function switchTour(id) {
-    saveState(); // make sure current edits are saved
-    const next = tourStore.get(id);
+
+  // Force-flush any pending debounced save before navigating away from a tour
+  // so we don't lose in-flight edits.
+  async function flushPendingSave() {
+    if (!saveTimer) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    if (!state || !state.id) return;
+    const { activeStepIdx, ...persistent } = state;
+    try { await tourStore.save(persistent); } catch (e) { console.error('[flush] failed:', e); }
+  }
+
+  async function switchTour(id) {
+    await flushPendingSave();
+    let next;
+    try { next = await tourStore.get(id); } catch (e) { console.error('[switchTour] failed:', e); return; }
     if (!next) return;
     tourStore.setActiveId(id);
     state = next;
@@ -2704,11 +2796,12 @@
     if (currentView === 'settings') {
       $settingsCssUrl.value = settings.cssUrl;
       $settingsJsUrl.value  = settings.jsUrl;
-      $settingsTourCount.textContent = `${tourStore.list().length} tour${tourStore.list().length === 1 ? '' : 's'}`;
+      $settingsTourCount.textContent = `${tourListCache.length} tour${tourListCache.length === 1 ? '' : 's'}`;
       return;
     }
 
     // Editor view
+    if (!state) return; // bootstrap hasn't completed yet
     $title.value = state.title;
     $stepCount.textContent = `${state.steps.length} ${state.steps.length === 1 ? 'step' : 'steps'}`;
     renderSidebar();
@@ -2720,8 +2813,8 @@
   }
 
   function renderNav() {
-    const tours = tourStore.list();
-    const activeId = state.id;
+    const tours = tourListCache;
+    const activeId = state ? state.id : null;
 
     // Show search if 5+ tours
     $navSearchWrap.classList.toggle('show', tours.length >= 5);
@@ -3216,8 +3309,16 @@
     if (!navPinned) closeKebabMenu();
   });
 
-  $newTourBtn.addEventListener('click', () => {
-    const tour = tourStore.create('Untitled tour');
+  $newTourBtn.addEventListener('click', async () => {
+    let tour;
+    try {
+      tour = await tourStore.create('Untitled tour');
+    } catch (e) {
+      console.error('[newTour] failed:', e);
+      showToast('Could not create tour');
+      return;
+    }
+    await refreshTourList();
     state = tour;
     state.activeStepIdx = 0;
     currentView = 'editor';
@@ -3271,7 +3372,7 @@
     kebabActiveTourId = null;
   }
 
-  $kebabMenu.addEventListener('click', e => {
+  $kebabMenu.addEventListener('click', async e => {
     const item = e.target.closest('[data-kebab-action]');
     if (!item || !kebabActiveTourId) return;
     const action = item.dataset.kebabAction;
@@ -3279,8 +3380,16 @@
     closeKebabMenu();
 
     if (action === 'duplicate') {
-      const dup = tourStore.duplicate(tourId);
+      let dup;
+      try {
+        dup = await tourStore.duplicate(tourId);
+      } catch (e) {
+        console.error('[duplicate] failed:', e);
+        showToast('Could not duplicate tour');
+        return;
+      }
       if (dup) {
+        await refreshTourList();
         state = dup;
         state.activeStepIdx = 0;
         currentView = 'editor';
@@ -3288,28 +3397,39 @@
         showToast('Tour duplicated');
       }
     } else if (action === 'rename') {
-      if (state.id !== tourId) switchTour(tourId);
+      if (state.id !== tourId) await switchTour(tourId);
       setTimeout(() => $title.select(), 50);
     } else if (action === 'delete') {
-      const tour = tourStore.get(tourId);
+      let tour;
+      try { tour = await tourStore.get(tourId); } catch (e) { console.error('[delete-get] failed:', e); return; }
       if (!tour) return;
-      showConfirm({
+      const ok = await showConfirm({
         title: `Delete "${tour.title || 'Untitled tour'}"?`,
         message: `This tour and all its ${(tour.steps || []).length} step(s) will be permanently removed.`,
         confirmText: 'Delete tour',
         cancelText: 'Cancel',
         danger: true
-      }).then(ok => {
-        if (!ok) return;
-        const wasActive = state.id === tourId;
-        tourStore.delete(tourId);
-        if (wasActive) {
-          state = tourStore.get(tourStore.activeId());
+      });
+      if (!ok) return;
+      const wasActive = state.id === tourId;
+      try {
+        await tourStore.delete(tourId);
+      } catch (e) {
+        console.error('[delete] failed:', e);
+        showToast('Could not delete tour');
+        return;
+      }
+      await refreshTourList();
+      if (wasActive) {
+        let next = null;
+        try { next = await tourStore.get(tourStore.activeId()); } catch (e) { console.error('[delete-reload] failed:', e); }
+        if (next) {
+          state = next;
           state.activeStepIdx = 0;
         }
-        renderAll();
-        showToast('Tour deleted');
-      });
+      }
+      renderAll();
+      showToast('Tour deleted');
     }
   });
 
@@ -4566,8 +4686,10 @@
     if (file) uploadImageFile(file, dz);
   });
 
-  // INIT
-  renderAll();
+  // INIT — initial render is triggered by bootstrapTours() once auth resolves.
+  // The auth check fires immediately on script load and (if a session exists)
+  // calls applyAuthState → bootstrapTours → renderAll. If no session, the
+  // login screen is shown and bootstrap runs after sign-in.
 </script>
 
 </body>
