@@ -951,6 +951,140 @@
     font-weight: 600;
   }
 
+  /* Image uploader — drop zone + URL fallback */
+  .image-uploader {
+    display: flex;
+    flex-direction: column;
+  }
+  .image-uploader-dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 18px 12px;
+    min-height: 96px;
+    border: 1.5px dashed var(--border-strong);
+    border-radius: 8px;
+    background: var(--bg-alt);
+    color: var(--text-2);
+    font-size: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .image-uploader-dropzone:hover {
+    border-color: var(--blue);
+    background: var(--blue-pale);
+  }
+  .image-uploader-dropzone.dragging {
+    border-color: var(--blue);
+    border-style: solid;
+    background: var(--blue-pale);
+  }
+  .image-uploader-dropzone.uploading {
+    cursor: wait;
+    border-style: solid;
+    border-color: var(--blue);
+    background: var(--blue-pale);
+  }
+  .image-uploader-dropzone.has-image {
+    padding: 0;
+    background: #fff;
+    border-style: solid;
+    border-color: var(--border);
+    cursor: default;
+    overflow: hidden;
+  }
+  .image-uploader-dropzone.has-image:hover {
+    border-color: var(--border-strong);
+    background: #fff;
+  }
+  .image-uploader-icon {
+    color: var(--text-2);
+    flex-shrink: 0;
+  }
+  .image-uploader-primary {
+    color: var(--text-1);
+    font-weight: 500;
+    font-size: 13px;
+  }
+  .image-uploader-secondary {
+    color: var(--caption);
+    font-size: 11px;
+  }
+  .image-uploader-thumb {
+    width: 100%;
+    height: 96px;
+    object-fit: cover;
+    display: block;
+    border-radius: 7px;
+  }
+  .image-uploader-thumb-overlay {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    display: flex;
+    gap: 4px;
+  }
+  .image-uploader-thumb-btn {
+    background: rgba(15, 28, 46, 0.85);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .image-uploader-thumb-btn:hover {
+    background: rgba(15, 28, 46, 1);
+  }
+  .image-uploader-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: image-uploader-spin 0.7s linear infinite;
+  }
+  @keyframes image-uploader-spin {
+    to { transform: rotate(360deg); }
+  }
+  .image-uploader-error {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: var(--error-bg);
+    border: 1px solid #F5C6BC;
+    border-radius: 6px;
+    color: var(--error);
+    font-size: 11px;
+    line-height: 1.4;
+    margin-top: 6px;
+  }
+  .image-uploader-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 6px;
+    color: var(--caption);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+  .image-uploader-divider::before,
+  .image-uploader-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
   /* Sensitive-info warning inside the Redactions section */
   .redaction-warning {
     display: flex;
@@ -2644,8 +2778,24 @@
       </div>
       <div class="edit-fields">
         <div class="edit-field">
-          <label>Image URL <span style="color:var(--error);">*</span></label>
-          <input class="edit-input edit-input-bind ${imgInvalid ? 'invalid' : ''}" type="url" data-field="image" value="${escapeAttr(step.image)}" placeholder="https://your-cdn.com/screenshot.png" />
+          <label>Image <span style="color:var(--error);">*</span></label>
+          <div class="image-uploader">
+            <div class="image-uploader-dropzone${step.image ? ' has-image' : ''}" id="imageDropzone" tabindex="0" role="button" aria-label="Upload image">
+              ${step.image ? `
+                <img class="image-uploader-thumb" src="${escapeAttr(step.image)}" alt="" onerror="this.style.display='none'" />
+                <div class="image-uploader-thumb-overlay">
+                  <button type="button" class="image-uploader-thumb-btn" id="imageReplaceBtn">Replace</button>
+                </div>
+              ` : `
+                <svg class="image-uploader-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                <div class="image-uploader-primary">Drop image here, or click to browse</div>
+                <div class="image-uploader-secondary">PNG, JPG, WebP &middot; max 5MB</div>
+              `}
+            </div>
+            <input type="file" id="imageFileInput" accept="image/png,image/jpeg,image/webp" style="display:none" />
+            <div class="image-uploader-divider">or paste a URL</div>
+            <input class="edit-input edit-input-bind ${imgInvalid ? 'invalid' : ''}" type="url" data-field="image" value="${escapeAttr(step.image)}" placeholder="https://your-cdn.com/screenshot.png" />
+          </div>
           ${imgInvalid ? '<div class="edit-field-error"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>Required</div>' : ''}
           <div class="image-warning">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
@@ -3989,6 +4139,180 @@
   requestAnimationFrame(() => {
     sizePreviewFrame();
     applyHighlight();
+  });
+
+  // =========================================================================
+  // IMAGE UPLOAD — file picker + drag-drop, uploads to Supabase Storage
+  // =========================================================================
+  const IMAGE_UPLOAD_BUCKET = 'tour-images';
+  const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+  const IMAGE_UPLOAD_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+  function validateImageFile(file) {
+    if (!file) return 'No file selected.';
+    if (!IMAGE_UPLOAD_MIME_TYPES.includes(file.type)) {
+      return 'Only PNG, JPEG, or WebP images are allowed.';
+    }
+    if (file.size > IMAGE_UPLOAD_MAX_BYTES) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      return `File is ${mb}MB. Max size is 5MB.`;
+    }
+    return null;
+  }
+
+  function imageFileExtension(file) {
+    const fromName = (file.name.match(/\.([a-zA-Z0-9]+)$/) || [])[1];
+    if (fromName) return fromName.toLowerCase();
+    if (file.type === 'image/jpeg') return 'jpg';
+    if (file.type === 'image/png') return 'png';
+    if (file.type === 'image/webp') return 'webp';
+    return 'bin';
+  }
+
+  function imageUploadId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  }
+
+  function clearUploadError(dz) {
+    if (!dz) return;
+    const wrap = dz.closest('.image-uploader');
+    if (!wrap) return;
+    const existing = wrap.querySelector('.image-uploader-error');
+    if (existing) existing.remove();
+  }
+
+  function showUploadError(dz, message) {
+    if (!dz) return;
+    clearUploadError(dz);
+    const wrap = dz.closest('.image-uploader');
+    if (!wrap) return;
+    const errEl = document.createElement('div');
+    errEl.className = 'image-uploader-error';
+    errEl.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+      <div></div>
+    `;
+    errEl.querySelector('div').textContent = message;
+    wrap.appendChild(errEl);
+  }
+
+  function setUploadingUI(dz) {
+    if (!dz) return;
+    dz.classList.remove('dragging', 'has-image');
+    dz.classList.add('uploading');
+    dz.innerHTML = `
+      <div class="image-uploader-spinner"></div>
+      <div class="image-uploader-primary">Uploading…</div>
+    `;
+  }
+
+  async function uploadImageFile(file, dz) {
+    const errMsg = validateImageFile(file);
+    if (errMsg) {
+      showUploadError(dz, errMsg);
+      return;
+    }
+    clearUploadError(dz);
+    setUploadingUI(dz);
+
+    const path = `${imageUploadId()}.${imageFileExtension(file)}`;
+    try {
+      const { error: uploadErr } = await supabaseClient.storage
+        .from(IMAGE_UPLOAD_BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if (uploadErr) {
+        renderAll();
+        showUploadError(document.getElementById('imageDropzone'),
+          uploadErr.message || 'Upload failed.');
+        return;
+      }
+
+      const { data } = supabaseClient.storage
+        .from(IMAGE_UPLOAD_BUCKET)
+        .getPublicUrl(path);
+      const publicUrl = data && data.publicUrl;
+
+      if (!publicUrl) {
+        renderAll();
+        showUploadError(document.getElementById('imageDropzone'),
+          'Could not get public URL for uploaded file.');
+        return;
+      }
+
+      // Apply to the URL field — fire input + change so existing handlers
+      // (state save, preview render, "annotations may reset" warning) all run.
+      const urlInput = document.querySelector('input.edit-input-bind[data-field="image"]');
+      if (urlInput) {
+        imageUrlOnFocus = state.steps[state.activeStepIdx].image;
+        urlInput.value = publicUrl;
+        urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+        urlInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } catch (e) {
+      renderAll();
+      showUploadError(document.getElementById('imageDropzone'),
+        e.message || 'Upload failed.');
+    }
+  }
+
+  function triggerImageFilePicker() {
+    const input = document.getElementById('imageFileInput');
+    if (input) input.click();
+  }
+
+  // Click on dropzone (when empty) or Replace button → file picker
+  document.body.addEventListener('click', e => {
+    if (e.target.closest('#imageReplaceBtn')) {
+      e.stopPropagation();
+      triggerImageFilePicker();
+      return;
+    }
+    const dz = e.target.closest('#imageDropzone');
+    if (!dz) return;
+    if (dz.classList.contains('has-image')) return;
+    if (dz.classList.contains('uploading')) return;
+    triggerImageFilePicker();
+  });
+
+  // File picker → upload
+  document.body.addEventListener('change', e => {
+    if (e.target.id !== 'imageFileInput') return;
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const dz = document.getElementById('imageDropzone');
+    uploadImageFile(file, dz);
+    e.target.value = ''; // reset so picking the same file again still fires change
+  });
+
+  // Drag-and-drop
+  document.body.addEventListener('dragenter', e => {
+    const dz = e.target.closest('#imageDropzone');
+    if (!dz || dz.classList.contains('uploading')) return;
+    e.preventDefault();
+    dz.classList.add('dragging');
+  });
+  document.body.addEventListener('dragover', e => {
+    const dz = e.target.closest('#imageDropzone');
+    if (!dz || dz.classList.contains('uploading')) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  });
+  document.body.addEventListener('dragleave', e => {
+    const dz = e.target.closest('#imageDropzone');
+    if (!dz) return;
+    if (e.relatedTarget && dz.contains(e.relatedTarget)) return;
+    dz.classList.remove('dragging');
+  });
+  document.body.addEventListener('drop', e => {
+    const dz = e.target.closest('#imageDropzone');
+    if (!dz) return;
+    e.preventDefault();
+    dz.classList.remove('dragging');
+    if (dz.classList.contains('uploading')) return;
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) uploadImageFile(file, dz);
   });
 
   // INIT
