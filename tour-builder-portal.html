@@ -2566,21 +2566,20 @@
     const config = { title: tour.title || 'Tour', steps: validSteps };
     const blob = new Blob([JSON.stringify(config)], { type: 'application/json' });
     const path = `${tour.id}.json`;
-    // Use remove + upload instead of upload({ upsert: true }). Supabase's
-    // upsert path runs INSERT ... ON CONFLICT UPDATE, which evaluates both
-    // INSERT and UPDATE RLS policies. The two-step version only needs
-    // INSERT + DELETE, which is simpler to keep healthy.
-    await supabaseClient.storage
+    const opts = { contentType: 'application/json', cacheControl: '5' };
+    // Try update() first (overwrite existing). If the file doesn't exist
+    // yet, update() returns "object not found" — fall back to upload().
+    const updateRes = await supabaseClient.storage
       .from(TOUR_CONFIG_BUCKET)
-      .remove([path])
-      .catch(() => {}); // no-op if file doesn't exist
-    const { error } = await supabaseClient.storage
+      .update(path, blob, opts);
+    if (!updateRes.error) return;
+    const msg = (updateRes.error.message || '').toLowerCase();
+    const isMissing = msg.includes('not found') || msg.includes('does not exist') || msg.includes('object not found');
+    if (!isMissing) throw updateRes.error;
+    const uploadRes = await supabaseClient.storage
       .from(TOUR_CONFIG_BUCKET)
-      .upload(path, blob, {
-        contentType: 'application/json',
-        cacheControl: '5',
-      });
-    if (error) throw error;
+      .upload(path, blob, opts);
+    if (uploadRes.error) throw uploadRes.error;
   }
 
   async function unpublishTourConfig(id) {
