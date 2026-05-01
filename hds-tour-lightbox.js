@@ -234,6 +234,26 @@
       this.elements.overlay.classList.add('active');
       document.body.classList.add('hds-tour-open');
 
+      // Bump the view counter once per open. Best-effort — failures are
+      // logged and ignored so a flaky network or a missing function in the
+      // database doesn't block the tour from playing.
+      const sb = this.config && this.config.supabase;
+      const tourId = this.config && this.config.id;
+      if (sb && sb.url && sb.anonKey && tourId && !this._viewBumped) {
+        this._viewBumped = true;
+        fetch(sb.url + '/rest/v1/rpc/increment_tour_view', {
+          method: 'POST',
+          headers: {
+            'apikey': sb.anonKey,
+            'Authorization': 'Bearer ' + sb.anonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tour_id: tourId }),
+        }).catch(function (err) {
+          console.warn('[HDSTour] view increment failed:', err);
+        });
+      }
+
       // Show loading state — gives the user a brief beat so the lightbox
       // doesn't feel like it pops in unexpectedly
       this.elements.overlay.classList.add('loading');
