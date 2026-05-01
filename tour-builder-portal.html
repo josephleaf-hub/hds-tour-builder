@@ -2328,12 +2328,23 @@
   function applyAuthState(session) {
     const body = document.body;
     if (session && session.user) {
+      const wasHidden = !body.classList.contains('auth-signed-in');
       body.classList.remove('auth-pending', 'auth-signed-out');
       body.classList.add('auth-signed-in');
       const emailEl = document.getElementById('headerUserEmail');
       if (emailEl) {
         emailEl.textContent = session.user.email || '';
         emailEl.title = session.user.email || '';
+      }
+      // The preview frame is sized via JS by sizePreviewFrame(), which
+      // runs on page load and on window resize. While the app was hidden
+      // behind the auth gate it had zero dimensions, so the initial sizing
+      // bailed out. Re-run after layout settles.
+      if (wasHidden && typeof sizePreviewFrame === 'function') {
+        requestAnimationFrame(() => {
+          sizePreviewFrame();
+          if (typeof applyHighlight === 'function') applyHighlight();
+        });
       }
     } else {
       body.classList.remove('auth-pending', 'auth-signed-in');
