@@ -87,8 +87,8 @@
 
   /* Centered topbar search — wired to the same query as the sidebar tour list. */
   .header-search {
-    flex: 1;
-    max-width: 420px;
+    width: 640px;
+    max-width: 80vw;
     position: relative;
     display: flex;
     align-items: center;
@@ -182,6 +182,44 @@
     background: var(--blue); color: #FFF; border-color: var(--blue);
   }
   .btn-primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
+
+  /* Publish split button — main action on the left, caret + dropdown on the
+     right. Caret is hidden until the tour has actually been published. */
+  .publish-group {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+  }
+  .publish-group .publish-main {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-right: 0;
+  }
+  .publish-group .publish-caret {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid rgba(255,255,255,0.2);
+    padding: 0 8px;
+    display: none;
+  }
+  .publish-group.has-published .publish-caret { display: inline-flex; }
+  .publish-group:not(.has-published) .publish-main {
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+  }
+  .publish-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: #FFF;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06);
+    padding: 4px;
+    z-index: 1000;
+    min-width: 200px;
+    display: none;
+  }
+  .publish-menu.active { display: block; }
   .btn-danger:hover {
     background: var(--error-bg); color: var(--error); border-color: var(--error);
   }
@@ -200,7 +238,7 @@
   /* ============ MAIN BODY (sub-grid for editor view) ============ */
   .body {
     display: grid;
-    grid-template-columns: 240px 1fr 320px;
+    grid-template-columns: 280px 1fr 320px;
     overflow: hidden;
     min-height: 0;
   }
@@ -627,7 +665,7 @@
     font-weight: 500;
     letter-spacing: -0.02em;
     color: var(--text-1);
-    margin: 0 0 4px;
+    margin: 0 0 8px;
   }
   .home-subtitle {
     font-size: 13px;
@@ -645,7 +683,7 @@
   }
   .home-kpi {
     background: var(--bg-card);
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 16px 18px;
     box-shadow: var(--shadow-card);
   }
@@ -676,17 +714,26 @@
     grid-template-columns: 1.6fr 1fr;
     gap: 16px;
     background: var(--bg-card);
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 14px;
     margin-bottom: 48px;
     box-shadow: var(--shadow-card);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
   }
+  .home-hero:hover {
+    background: var(--bg-alt);
+    transform: translateY(-5px);
+  }
+  .home-hero:focus,
+  .home-hero:focus-visible { outline: none; }
   .home-hero-preview {
     position: relative;
     aspect-ratio: 16/9;
     border-radius: 10px;
     overflow: hidden;
     background: #0E1A2E;
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -696,7 +743,7 @@
     width: 100%; height: 100%; object-fit: cover; display: block;
   }
   .home-hero-info {
-    padding: 8px 12px;
+    padding: 28px 16px 12px;
     display: flex;
     flex-direction: column;
   }
@@ -708,10 +755,15 @@
     color: var(--blue);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     margin-bottom: 12px;
   }
-  .home-hero-eyebrow::before {
+  .home-hero-eyebrow > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .home-hero-eyebrow > span:first-child::before {
     content: '';
     width: 6px; height: 6px; border-radius: 50%;
     background: var(--blue);
@@ -744,6 +796,16 @@
     font-size: 14px;
     font-weight: 500;
     color: var(--text-1);
+  }
+  /* Notes appear on a new full-width row below the Steps/Views/Last-edited
+     items. Italic + grey, same visual rule as the recent-card notes. */
+  .home-hero-notes {
+    flex-basis: 100%;
+    width: 100%;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--text-3);
+    margin-top: 2px;
   }
   /* Hero hidden until we have at least one tour to feature. */
   .home-hero.empty { display: none; }
@@ -796,7 +858,7 @@
   .home-folder-card {
     --folder-color: var(--blue);
     background: var(--bg-card);
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 14px 16px;
     display: flex;
     align-items: center;
@@ -877,7 +939,7 @@
     flex: 0 0 320px;
     scroll-snap-align: start;
     background: var(--bg-card);
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 12px;
     cursor: pointer;
     box-shadow: var(--shadow-card);
@@ -896,6 +958,7 @@
     border-radius: 8px;
     overflow: hidden;
     background: #0E1A2E;
+    border: 1px solid var(--border);
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -921,9 +984,17 @@
   }
   .home-recent-head {
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    min-width: 0;
+  }
+  .home-recent-head .home-recent-status { align-self: flex-start; }
+  .home-recent-chips {
+    display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 6px;
     min-width: 0;
   }
   .home-recent-menu {
@@ -962,6 +1033,17 @@
     font-size: 12px;
     color: var(--text-3);
   }
+  .home-recent-notes {
+    font-size: 11px;
+    font-style: italic;
+    color: var(--text-3);
+    margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
   /* Status badge — Live (green) or Draft (amber). Sits in the title row. */
   .home-recent-status {
     display: inline-flex;
@@ -969,7 +1051,7 @@
     gap: 5px;
     font-size: 11px;
     font-weight: 500;
-    padding: 2px 8px;
+    padding: 6px 12px;
     border-radius: 999px;
     flex-shrink: 0;
   }
@@ -979,8 +1061,43 @@
     border-radius: 50%;
     background: currentColor;
   }
-  .home-recent-status.live  { background: var(--success-bg); color: var(--success); }
-  .home-recent-status.draft { background: var(--warning-bg); color: var(--warning); }
+  .home-recent-status.live    { background: var(--success-bg); color: var(--success); }
+  .home-recent-status.updated { background: var(--warning-bg); color: var(--warning); }
+  .home-recent-status.draft   { background: var(--bg-alt);     color: var(--text-3); }
+
+  /* Bottom block on each recent card — pushes foot + folder chip to the
+     bottom of the card so cards in the horizontal row line up consistently. */
+  .home-recent-bottom {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  /* Folder/category chip — pinned at the bottom of each recent card. Coloured
+     to match the folder's chosen colour so categories are visually scannable. */
+  .home-recent-folder {
+    --folder-color: var(--text-3);
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--folder-color) 12%, transparent);
+    color: var(--folder-color);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .home-recent-folder svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .home-recent-folder span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   /* Footer — view count for live tours, "Not published yet" for drafts. */
   .home-recent-foot {
     margin-top: 10px;
@@ -1089,6 +1206,43 @@
     letter-spacing: 0.05em;
     padding: 4px 8px 8px;
   }
+  /* Tour-level notes — sits at the top of the steps sidebar so it's visible
+     while editing any step. Italic + grey to read as auxiliary metadata. */
+  .sidebar-notes {
+    padding: 4px 8px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .sidebar-notes-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--caption);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 0 0 6px;
+  }
+  .sidebar-notes-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-2);
+    font-style: italic;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.4;
+    resize: vertical;
+    min-height: 44px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .sidebar-notes-input::placeholder { color: var(--text-3); font-style: italic; }
+  .sidebar-notes-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(28,100,242,0.12);
+  }
   .step-item {
     display: flex;
     align-items: center;
@@ -1105,7 +1259,6 @@
   }
   .step-item.active {
     background: var(--blue-pale);
-    border-color: var(--blue);
   }
   .step-thumb {
     width: 56px;
@@ -1126,7 +1279,8 @@
   .step-thumb-empty {
     color: var(--border-strong); font-size: 14px;
   }
-  .step-info { flex: 1; min-width: 0; }
+  .step-info { flex: 1; min-width: 0; transition: padding-right 0.15s; }
+  .step-item:hover .step-info { padding-right: 26px; }
   .step-num {
     font-size: 10px; font-weight: 500; color: var(--caption);
     text-transform: uppercase; letter-spacing: 0.04em;
@@ -1257,7 +1411,8 @@
   .preview-frame-header {
     background: #FFF;
     border-bottom: 1px solid var(--border);
-    padding: 10px 14px;
+    padding: 0 20px;
+    height: 60px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1879,6 +2034,13 @@
     transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  /* While a fresh tour's image is still fetching, hide the tooltip and
+     suppress the position transition so it doesn't visibly slide from a
+     stale/centered position into the correct one once the image loads. */
+  .preview-tt.preview-tt-loading {
+    visibility: hidden;
+    transition: none;
+  }
   .preview-tt-body { flex: 1; min-width: 0; }
   .preview-tt-actions {
     display: flex; gap: 4px; flex-shrink: 0;
@@ -2168,6 +2330,18 @@
     background: #266B45;
     border-color: #266B45;
   }
+  /* Caret colour follows the main button's CURRENT data-state, not just
+     "ever published". So when there are unpublished edits and the main button
+     is back to blue "Publish", the caret follows back to blue too. */
+  #embedBtn[data-state="published"] ~ .publish-caret {
+    background: var(--success);
+    border-color: var(--success);
+    color: #FFF;
+  }
+  #embedBtn[data-state="published"] ~ .publish-caret:hover {
+    background: #266B45;
+    border-color: #266B45;
+  }
   #embedBtn .btn-icon {
     display: inline-flex;
     transition: transform 0.25s ease, opacity 0.25s ease;
@@ -2426,24 +2600,25 @@
   .folder-modal-tour {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 8px;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 10px;
     cursor: pointer;
     transition: background 0.1s;
   }
   .folder-modal-tour:hover { background: var(--bg-alt); }
   .folder-modal-thumb {
-    width: 48px;
-    height: 32px;
-    border-radius: 4px;
-    background: var(--bg-alt);
+    width: 110px;
+    height: 70px;
+    border-radius: 8px;
+    background: #0E1A2E;
+    border: 1px solid var(--border);
     overflow: hidden;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-2);
+    color: rgba(255,255,255,0.3);
   }
   .folder-modal-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .folder-modal-info { flex: 1; min-width: 0; }
@@ -2476,6 +2651,156 @@
     border-color: #A93226;
     color: #FFF;
   }
+
+  /* ============ FOLDER EDIT MODAL (name + color + icon) ============ */
+  .folder-edit-modal {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.96);
+    background: #FFF;
+    border-radius: 14px;
+    box-shadow: 0 24px 64px rgba(6, 13, 24, 0.4);
+    width: 92%;
+    max-width: 460px;
+    max-height: 86vh;
+    z-index: 10002;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .folder-edit-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .folder-edit-modal .fe-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .folder-edit-modal .fe-title {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-1);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .folder-edit-modal .fe-body {
+    padding: 18px;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .fe-section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--caption);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    margin: 0 0 8px;
+  }
+  .fe-name-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text-1);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .fe-name-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(28,100,242,0.12);
+    background: #FFF;
+  }
+  .fe-color-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .fe-color-swatch {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    background-clip: content-box;
+    transition: transform 0.1s;
+  }
+  .fe-color-swatch:hover { transform: scale(1.08); }
+  .fe-color-swatch.selected {
+    border-color: var(--text-1);
+    box-shadow: 0 0 0 2px #FFF inset;
+  }
+  .fe-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .fe-icon-btn {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+    padding: 0;
+  }
+  .fe-icon-btn:hover {
+    background: var(--bg-alt);
+    color: var(--text-1);
+  }
+  .fe-icon-btn.selected {
+    background: var(--blue-pale);
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+  .fe-icon-btn svg { width: 18px; height: 18px; }
+  .folder-edit-modal .fe-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-alt);
+  }
+
+  /* Edit button on each folder card — hover-revealed in the top-right */
+  .home-folder-card { position: relative; }
+  .home-folder-edit-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.7);
+    color: var(--text-2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 0.12s, background 0.12s, color 0.12s, border-color 0.12s;
+    padding: 0;
+  }
+  .home-folder-card:hover .home-folder-edit-btn { opacity: 1; }
+  .home-folder-edit-btn:hover {
+    background: #FFF;
+    color: var(--text-1);
+    border-color: var(--border);
+  }
+  .home-folder-edit-btn svg { width: 13px; height: 13px; }
+
+  /* Drag affordances for folder reorder */
+  .home-folder-card { transition: background 0.15s, transform 0.15s, box-shadow 0.15s, opacity 0.15s; }
+  .home-folder-card.dragging { opacity: 0.4; }
+  .home-folder-card.drop-before { box-shadow: -3px 0 0 0 var(--blue), var(--shadow-card); }
+  .home-folder-card.drop-after  { box-shadow:  3px 0 0 0 var(--blue), var(--shadow-card); }
+  .home-folder-card[draggable="true"] { cursor: grab; }
+  .home-folder-card[draggable="true"]:active { cursor: grabbing; }
 
   /* ============ VIEW EDITOR MODAL ============ */
   .ve-modal-bg {
@@ -2634,12 +2959,12 @@
 
   /* ============ RESPONSIVE ============ */
   @media (max-width: 1300px) {
-    .body { grid-template-columns: 220px 1fr 280px; }
+    .body { grid-template-columns: 260px 1fr 280px; }
     .app.nav-open { --nav-w: 260px; }
     .title-input { width: 180px; }
   }
   @media (max-width: 1100px) {
-    .body { grid-template-columns: 200px 1fr 260px; }
+    .body { grid-template-columns: 240px 1fr 260px; }
     .app.nav-open { --nav-w: 240px; }
     .title-input { width: 140px; }
     .preview-stage { padding: 24px; }
@@ -2727,6 +3052,12 @@
     </div>
 
     <div class="nav-section nav-section-divider">
+      <button class="nav-btn" id="tutorialNavBtn" title="Take the tutorial">
+        <span class="nav-btn-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <span class="nav-btn-label">Tutorial</span>
+      </button>
       <button class="nav-btn" id="settingsNavBtn" title="Settings">
         <span class="nav-btn-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -2767,10 +3098,21 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
           Preview
         </button>
-        <button class="btn btn-primary" id="embedBtn" data-state="pending">
-          <span class="btn-icon" id="embedBtnIcon"></span>
-          <span class="btn-label" id="embedBtnLabel">Publish</span>
-        </button>
+        <div class="publish-group" id="publishGroup">
+          <button class="btn btn-primary publish-main" id="embedBtn" data-state="pending">
+            <span class="btn-icon" id="embedBtnIcon"></span>
+            <span class="btn-label" id="embedBtnLabel">Publish</span>
+          </button>
+          <button class="btn btn-primary publish-caret" id="embedCaretBtn" aria-label="Publish options" title="Publish options">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="publish-menu" id="publishMenu" role="menu">
+            <button class="kebab-item danger" data-publish-action="unpublish" role="menuitem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M14.5 4.5a4.5 4.5 0 0 1 4.5 4.5"/><path d="M14 14a5 5 0 0 0-7-3"/></svg>
+              Unpublish &amp; stop embed
+            </button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="header-right">
@@ -2787,6 +3129,15 @@
 
     <!-- SIDEBAR (steps) -->
     <aside class="sidebar" id="sidebar">
+      <div class="sidebar-notes">
+        <label class="sidebar-notes-label" for="tourNotes">Notes</label>
+        <textarea
+          class="sidebar-notes-input"
+          id="tourNotes"
+          rows="2"
+          placeholder="Where on the website is this tour? (e.g. /pricing page)"
+        ></textarea>
+      </div>
       <div class="sidebar-label">Steps</div>
       <div id="stepsList"></div>
       <button class="add-step-btn" id="addStepBtn">
@@ -2864,8 +3215,8 @@
 
         <section class="home-page-header">
           <div>
-            <h1 class="home-title">My tours</h1>
-            <p class="home-subtitle" id="homeSubtitle"></p>
+            <h1 class="home-title">HDS Tour Builder</h1>
+            <p class="home-subtitle">Build interactive product tours that guide users through your app, step by step.</p>
           </div>
           <div class="home-page-actions">
             <button class="btn btn-primary" id="homeNewTourBtn">
@@ -2896,8 +3247,12 @@
         <section class="home-hero" id="homeHero">
           <div class="home-hero-preview" id="homeHeroPreview"></div>
           <div class="home-hero-info">
-            <div class="home-hero-eyebrow">Most recent</div>
+            <div class="home-hero-eyebrow">
+              <span>Most recent</span>
+              <span id="homeHeroStatus"></span>
+            </div>
             <h2 class="home-hero-title" id="homeHeroTitle">—</h2>
+            <div id="homeHeroFolder"></div>
             <div class="home-hero-meta" id="homeHeroMeta"></div>
           </div>
         </section>
@@ -3019,6 +3374,10 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
     Move to folder
   </button>
+  <button class="kebab-item" data-kebab-action="unpublish">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17h.01"/><path d="M17 21h.01"/><path d="M14 14a5 5 0 0 0-7-3"/><path d="M2 2l20 20"/><path d="M14.5 4.5a4.5 4.5 0 0 1 4.5 4.5"/></svg>
+    Unpublish
+  </button>
   <div class="kebab-divider"></div>
   <button class="kebab-item danger" data-kebab-action="delete">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -3107,6 +3466,34 @@
     </button>
   </header>
   <div class="folder-modal-body" id="folderModalBody"></div>
+</div>
+
+<!-- Folder edit modal — used for both "create new" and "edit existing" -->
+<div class="folder-edit-modal" id="folderEditModal" role="dialog" aria-modal="true">
+  <header class="fe-header">
+    <h3 class="fe-title" id="folderEditTitle">New folder</h3>
+    <button class="folder-modal-close" id="folderEditClose" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </header>
+  <div class="fe-body">
+    <div>
+      <div class="fe-section-label">Name</div>
+      <input class="fe-name-input" id="folderEditName" type="text" placeholder="Folder name" maxlength="60" />
+    </div>
+    <div>
+      <div class="fe-section-label">Colour</div>
+      <div class="fe-color-grid" id="folderEditColors"></div>
+    </div>
+    <div>
+      <div class="fe-section-label">Icon</div>
+      <div class="fe-icon-grid" id="folderEditIcons"></div>
+    </div>
+  </div>
+  <footer class="fe-footer">
+    <button class="btn" id="folderEditCancel">Cancel</button>
+    <button class="btn btn-primary" id="folderEditSave">Save</button>
+  </footer>
 </div>
 
 <!-- Toast -->
@@ -3252,6 +3639,7 @@
         id: row.id,
         title: row.title,
         steps: row.steps || [],
+        notes: row.notes || '',
         folderId: row.folder_id || null,
         viewCount: row.view_count ?? 0,
         publishedAt: row.published_at ? new Date(row.published_at).getTime() : null,
@@ -3265,6 +3653,7 @@
         id: tour.id,
         title: tour.title,
         steps: tour.steps || [],
+        notes: tour.notes || '',
       };
     },
 
@@ -3446,6 +3835,8 @@
   // FOLDERS — group tours into folders for the home page
   // =========================================================================
   const FOLDER_COLOURS = ['#3B82F6', '#22C55E', '#EAB308', '#EF4444', '#A855F7', '#EC4899', '#F97316', '#14B8A6'];
+  const FOLDER_ICONS = ['folder', 'briefcase', 'book', 'graduation', 'lightbulb', 'star', 'heart', 'flag', 'rocket', 'settings', 'users', 'package'];
+  const DEFAULT_FOLDER_ICON = 'folder';
 
   const folderStore = {
     _fromDb(row) {
@@ -3453,35 +3844,72 @@
         id: row.id,
         name: row.name,
         color: row.color || FOLDER_COLOURS[0],
+        icon: row.icon || DEFAULT_FOLDER_ICON,
+        position: row.position ?? 0,
         createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
       };
     },
     async list() {
-      const { data, error } = await supabaseClient
+      // Try ordering by position first; if the column doesn't exist yet, fall
+      // back to created_at so the app still works pre-migration.
+      let { data, error } = await supabaseClient
         .from('folders')
         .select('*')
+        .order('position', { ascending: true })
         .order('created_at', { ascending: true });
-      if (error) throw error;
+      if (error) {
+        const fallback = await supabaseClient.from('folders').select('*').order('created_at', { ascending: true });
+        if (fallback.error) throw fallback.error;
+        data = fallback.data;
+      }
       return (data || []).map(this._fromDb);
     },
-    async create(name, color) {
+    // Persist a new ordering — best-effort, silently no-ops if the position
+    // column hasn't been added yet.
+    async setOrder(orderedIds) {
+      const updates = orderedIds.map((id, position) =>
+        supabaseClient.from('folders').update({ position }).eq('id', id)
+      );
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed) console.warn('[folders] setOrder partial failure:', failed.error);
+    },
+    async create({ name, color, icon } = {}) {
       const palette = color || FOLDER_COLOURS[Math.floor(Math.random() * FOLDER_COLOURS.length)];
-      const { data, error } = await supabaseClient
+      const ic = icon || DEFAULT_FOLDER_ICON;
+      // Try with icon first; if the column doesn't exist yet, retry without it.
+      let { data, error } = await supabaseClient
         .from('folders')
-        .insert({ name: name || 'Untitled folder', color: palette })
+        .insert({ name: name || 'Untitled folder', color: palette, icon: ic })
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        const retry = await supabaseClient
+          .from('folders')
+          .insert({ name: name || 'Untitled folder', color: palette })
+          .select()
+          .single();
+        if (retry.error) throw retry.error;
+        data = retry.data;
+      }
       return this._fromDb(data);
     },
     async update(id, fields) {
       const patch = {};
       if (fields.name !== undefined) patch.name = fields.name;
       if (fields.color !== undefined) patch.color = fields.color;
-      const { error } = await supabaseClient
+      if (fields.icon !== undefined) patch.icon = fields.icon;
+      let { error } = await supabaseClient
         .from('folders')
         .update(patch)
         .eq('id', id);
+      if (error && fields.icon !== undefined) {
+        // Retry without icon in case the column hasn't been added yet.
+        const { icon, ...rest } = patch;
+        const retry = await supabaseClient.from('folders').update(rest).eq('id', id);
+        if (retry.error) throw retry.error;
+        return;
+      }
       if (error) throw error;
     },
     async delete(id) {
@@ -3585,8 +4013,8 @@
   let hasUnpublishedChanges = false;
 
   let settings = loadSettings() || {
-    cssUrl: 'https://hds-tour.joseph-leaf.workers.dev/hds-tour-lightbox.css',
-    jsUrl:  'https://hds-tour.joseph-leaf.workers.dev/hds-tour-lightbox.js'
+    cssUrl: 'https://hds-tours.vercel.app/hds-tour-lightbox.css',
+    jsUrl:  'https://hds-tours.vercel.app/hds-tour-lightbox.js'
   };
 
   // Sidebar pin state — persisted. Hover state is transient.
@@ -3623,11 +4051,16 @@
 
     // Mirror state into the nav cache so renderNav reflects the change.
     const prevIdx = tourListCache.findIndex(t => t.id === state.id);
-    const prevTitle = prevIdx !== -1 ? tourListCache[prevIdx].title : null;
+    const prevCached = prevIdx !== -1 ? tourListCache[prevIdx] : null;
+    const prevTitle = prevCached ? prevCached.title : null;
     const snapshot = {
       id: state.id,
       title: state.title,
       steps: state.steps,
+      notes: state.notes || '',
+      folderId: state.folderId,
+      viewCount: prevCached ? prevCached.viewCount : 0,
+      publishedAt: state.publishedAt,
       createdAt: state.createdAt,
       updatedAt: Date.now(),
     };
@@ -3682,6 +4115,26 @@
 
   function escapeAttr(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Curated set of folder icons. Keep in sync with FOLDER_ICONS.
+  const FOLDER_ICON_SVGS = {
+    folder:     '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    briefcase:  '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    book:       '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+    graduation: '<path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>',
+    lightbulb:  '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/>',
+    star:       '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    heart:      '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+    flag:       '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+    rocket:     '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
+    settings:   '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    users:      '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    package:    '<path d="M16.5 9.4l-9-5.19"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+  };
+  function folderIconHtml(iconKey) {
+    const path = FOLDER_ICON_SVGS[iconKey] || FOLDER_ICON_SVGS[DEFAULT_FOLDER_ICON];
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
   }
 
   function formatRelativeTime(ts) {
@@ -3792,6 +4245,8 @@
     // Editor view
     if (!state) return; // bootstrap hasn't completed yet
     $title.value = state.title;
+    const $notesEl = document.getElementById('tourNotes');
+    if ($notesEl) $notesEl.value = state.notes || '';
     $stepCount.textContent = `${state.steps.length} ${state.steps.length === 1 ? 'step' : 'steps'}`;
     renderSidebar();
     renderPreview();
@@ -3856,20 +4311,6 @@
     const tours = tourListCache;
     const folders = folderListCache;
 
-    // --- Subtitle: tour count, last edit, total steps shipped ----------------
-    const $subtitle = document.getElementById('homeSubtitle');
-    if ($subtitle) {
-      const totalSteps = tours.reduce((sum, t) => sum + (t.steps || []).length, 0);
-      const lastEdit = tours[0]
-        ? `last edit ${formatRelativeTime(tours[0].updatedAt)}`
-        : 'no edits yet';
-      const tourLabel = `${tours.length} ${tours.length === 1 ? 'tour' : 'tours'}`;
-      const stepsLabel = `${totalSteps} total ${totalSteps === 1 ? 'step' : 'steps'}`;
-      $subtitle.textContent = tours.length === 0
-        ? 'No tours yet — start by creating one.'
-        : `${tourLabel} · ${lastEdit} · ${stepsLabel}`;
-    }
-
     // --- KPIs ----------------------------------------------------------------
     const $kpiTours = document.getElementById('kpiTours');
     const $kpiSteps = document.getElementById('kpiSteps');
@@ -3898,16 +4339,41 @@
           ? `<img src="${escapeAttr(heroImage)}" alt="" onerror="this.style.display='none'" />`
           : `<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`;
         $heroTitle.textContent = top.title || 'Untitled tour';
+        const $heroFolder = document.getElementById('homeHeroFolder');
+        if ($heroFolder) {
+          const heroFolderObj = top.folderId ? folderListCache.find(f => f.id === top.folderId) : null;
+          $heroFolder.innerHTML = heroFolderObj
+            ? `<span class="home-recent-folder" style="--folder-color: ${escapeAttr(heroFolderObj.color)};">${folderIconHtml(heroFolderObj.icon)}<span>${escapeAttr(heroFolderObj.name)}</span></span>`
+            : '';
+        }
         const heroStepCount = (top.steps || []).length;
+        const heroViewCount = top.viewCount || 0;
+        const heroNotes = top.notes ? `<div class="home-hero-notes">${escapeAttr(top.notes)}</div>` : '';
+        // Status badge — same Live/Updated/Draft logic as recent cards.
+        const $heroStatus = document.getElementById('homeHeroStatus');
+        if ($heroStatus) {
+          if (top.publishedAt && top.publishedAt >= top.updatedAt) {
+            $heroStatus.innerHTML = '<span class="home-recent-status live">Live</span>';
+          } else if (top.publishedAt) {
+            $heroStatus.innerHTML = '<span class="home-recent-status updated">Updated</span>';
+          } else {
+            $heroStatus.innerHTML = '<span class="home-recent-status draft">Draft</span>';
+          }
+        }
         $heroMeta.innerHTML = `
           <div class="home-hero-meta-item">
             <span class="home-hero-meta-label">Steps</span>
             <span class="home-hero-meta-value">${heroStepCount}</span>
           </div>
           <div class="home-hero-meta-item">
+            <span class="home-hero-meta-label">Views</span>
+            <span class="home-hero-meta-value">${heroViewCount.toLocaleString()}</span>
+          </div>
+          <div class="home-hero-meta-item">
             <span class="home-hero-meta-label">Last edited</span>
             <span class="home-hero-meta-value">${formatRelativeTime(top.updatedAt)}</span>
           </div>
+          ${heroNotes}
         `;
         $hero.dataset.tourId = top.id;
       }
@@ -3916,16 +4382,17 @@
     // --- Folders -------------------------------------------------------------
     const $foldersCount = document.getElementById('homeFoldersCount');
     if ($foldersCount) $foldersCount.textContent = folders.length;
-    const folderIconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
+    const editIconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
     const cards = folders.map(f => {
       const count = tours.filter(t => t.folderId === f.id).length;
       return `
-        <div class="home-folder-card" data-folder-id="${escapeAttr(f.id)}" style="--folder-color: ${escapeAttr(f.color)};">
-          <div class="home-folder-icon">${folderIconSvg}</div>
+        <div class="home-folder-card" data-folder-id="${escapeAttr(f.id)}" draggable="true" style="--folder-color: ${escapeAttr(f.color)};">
+          <div class="home-folder-icon">${folderIconHtml(f.icon)}</div>
           <div class="home-folder-info">
             <div class="home-folder-name">${escapeAttr(f.name)}</div>
             <div class="home-folder-meta">${count} ${count === 1 ? 'tour' : 'tours'}</div>
           </div>
+          <button class="home-folder-edit-btn" data-action="folder-edit" data-folder-id="${escapeAttr(f.id)}" aria-label="Edit folder" title="Edit folder">${editIconSvg}</button>
         </div>
       `;
     });
@@ -3951,33 +4418,47 @@
         const thumb = firstImage
           ? `<img src="${escapeAttr(firstImage)}" alt="" onerror="this.style.display='none'" />`
           : `<div class="home-recent-thumb-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div>`;
-        // Live = published AND no edits since publish. Otherwise Draft.
-        const isLive = !!t.publishedAt && t.publishedAt >= t.updatedAt;
-        const statusHtml = isLive
-          ? '<span class="home-recent-status live">Live</span>'
-          : '<span class="home-recent-status draft">Draft</span>';
-        const footHtml = isLive
-          ? `<div class="home-recent-foot">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-               ${(t.viewCount || 0).toLocaleString()} ${t.viewCount === 1 ? 'view' : 'views'}
-             </div>`
-          : `<div class="home-recent-foot muted">Not published yet</div>`;
+        // Three states:
+        //   Live    — published, no edits since (publishedAt >= updatedAt)
+        //   Updated — was published, edited since — embed shows old version
+        //   Draft   — never published (publishedAt is null)
+        const eyeSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        const viewLabel = `${(t.viewCount || 0).toLocaleString()} ${t.viewCount === 1 ? 'view' : 'views'}`;
+        let statusHtml, footHtml;
+        if (t.publishedAt && t.publishedAt >= t.updatedAt) {
+          statusHtml = '<span class="home-recent-status live">Live</span>';
+          footHtml = `<div class="home-recent-foot">${eyeSvg}${viewLabel}</div>`;
+        } else if (t.publishedAt) {
+          statusHtml = '<span class="home-recent-status updated">Updated</span>';
+          footHtml = `<div class="home-recent-foot">${eyeSvg}${viewLabel} &middot; embed shows old version</div>`;
+        } else {
+          statusHtml = '<span class="home-recent-status draft">Draft</span>';
+          footHtml = `<div class="home-recent-foot muted">Not published yet</div>`;
+        }
+        const folder = t.folderId ? folderListCache.find(f => f.id === t.folderId) : null;
+        const folderHtml = folder
+          ? `<span class="home-recent-folder" style="--folder-color: ${escapeAttr(folder.color)};">${folderIconHtml(folder.icon)}<span>${escapeAttr(folder.name)}</span></span>`
+          : '';
         return `
           <div class="home-recent-card" data-tour-id="${escapeAttr(t.id)}">
             <div class="home-recent-thumb">${thumb}</div>
             <div class="home-recent-info">
               <div class="home-recent-info-text">
                 <div class="home-recent-head">
-                  <div class="home-recent-title">${escapeAttr(t.title || 'Untitled tour')}</div>
                   ${statusHtml}
+                  <div class="home-recent-title">${escapeAttr(t.title || 'Untitled tour')}</div>
                 </div>
                 <div class="home-recent-meta">${stepCount} ${stepCount === 1 ? 'step' : 'steps'} &middot; ${formatRelativeTime(t.updatedAt)}</div>
+                ${t.notes ? `<div class="home-recent-notes">${escapeAttr(t.notes)}</div>` : ''}
               </div>
               <button class="home-recent-menu" data-tour-id="${escapeAttr(t.id)}" data-action="kebab" aria-label="Menu" title="Menu">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
               </button>
             </div>
-            ${footHtml}
+            <div class="home-recent-bottom">
+              ${footHtml}
+              ${folderHtml}
+            </div>
           </div>
         `;
       }).join('');
@@ -4032,6 +4513,18 @@
     $ttDesc.classList.toggle('empty', !step.caption);
 
     if (step.image) {
+      // Don't run applyHighlight prematurely. If the image isn't loaded yet,
+      // its naturalWidth is 0 and the highlight code positions the tooltip at
+      // the centre of the stage — then onload fires and the tooltip visibly
+      // slides into the correct position. For a fresh tour load we also hide
+      // the tooltip so the user doesn't see the snap on first show.
+      const sameSrc = $previewImg.src === step.image;
+      const isReady = sameSrc && $previewImg.complete && $previewImg.naturalWidth > 0;
+      const isFreshTour = lastRenderedTourId !== state.id;
+      if (!isReady && isFreshTour) {
+        $previewTt.classList.add('preview-tt-loading');
+      }
+
       $previewImg.src = step.image;
       $previewImg.style.display = 'block';
       $previewImgEmpty.style.display = 'none';
@@ -4039,17 +4532,30 @@
         $previewImg.style.display = 'none';
         $previewImgEmpty.style.display = 'flex';
         $previewImgEmpty.querySelector('.preview-img-empty-text').textContent = 'Image failed to load';
+        $previewTt.classList.remove('preview-tt-loading');
+        applyHighlight();
       };
-      $previewImg.onload = () => applyHighlight();
+      $previewImg.onload = () => {
+        applyHighlight();
+        $previewTt.classList.remove('preview-tt-loading');
+      };
+
+      if (isReady) applyHighlight();
+      // else: wait for onload — calling applyHighlight now would mis-position
     } else {
       $previewImg.style.display = 'none';
       $previewImg.removeAttribute('src');
       $previewImgEmpty.style.display = 'flex';
       $previewImgEmpty.querySelector('.preview-img-empty-text').textContent = 'Add an image URL to see the preview';
+      $previewTt.classList.remove('preview-tt-loading');
+      applyHighlight();
     }
 
-    applyHighlight();
+    lastRenderedTourId = state.id;
   }
+  // Tracks the tour id that was last rendered, so renderPreview can detect
+  // a fresh-tour load (vs. a step-change inside the same tour).
+  let lastRenderedTourId = null;
 
   function applyHighlight() {
     if (!state) return; // bootstrap hasn't populated state yet
@@ -4371,6 +4877,14 @@
     const labelEl = document.getElementById('embedBtnLabel');
     if (!iconEl || !labelEl) return;
 
+    // Show the caret + dropdown only when this tour has been published at
+    // least once — otherwise there's nothing to unpublish.
+    const $publishGroup = document.getElementById('publishGroup');
+    if ($publishGroup) {
+      const isPublished = !!(state && state.publishedAt);
+      $publishGroup.classList.toggle('has-published', isPublished);
+    }
+
     if (!valid) {
       $embedBtn.disabled = true;
       $embedBtn.dataset.state = 'pending';
@@ -4429,6 +4943,16 @@
     saveState();
     renderNav();
   });
+
+  // Tour-level notes input — saves on every keystroke (debounced via saveState).
+  const $tourNotes = document.getElementById('tourNotes');
+  if ($tourNotes) {
+    $tourNotes.addEventListener('input', e => {
+      if (!state) return;
+      state.notes = e.target.value;
+      saveState();
+    });
+  }
 
   $settingsCssUrl.addEventListener('input', e => {
     settings.cssUrl = e.target.value;
@@ -4515,17 +5039,16 @@
       return;
     }
     if (e.target.closest('#homeNewFolderCard')) {
-      const name = (window.prompt('Folder name?') || '').trim();
-      if (!name) return;
-      try {
-        await folderStore.create(name);
-        await refreshFolderList();
-        renderHome();
-        showToast('Folder created');
-      } catch (err) {
-        console.error('[folder] create failed:', err);
-        showToast('Could not create folder');
-      }
+      openFolderEditModal(null);
+      return;
+    }
+    // Edit button on a folder card — opens the same modal pre-filled. Must be
+    // checked BEFORE the folder-card click so we don't open the contents modal.
+    const folderEditBtn = e.target.closest('[data-action="folder-edit"]');
+    if (folderEditBtn) {
+      e.stopPropagation();
+      const folder = folderListCache.find(f => f.id === folderEditBtn.dataset.folderId);
+      if (folder) openFolderEditModal(folder);
       return;
     }
     // Kebab on a recent card — open the same menu the sidebar uses. Must be
@@ -4540,6 +5063,13 @@
     if (recent && recent.dataset.tourId) {
       currentView = 'editor';
       switchTour(recent.dataset.tourId);
+      return;
+    }
+    // Hero is also a clickable surface — open the featured tour in the editor.
+    const hero = e.target.closest('.home-hero');
+    if (hero && hero.dataset.tourId) {
+      currentView = 'editor';
+      switchTour(hero.dataset.tourId);
       return;
     }
     const folder = e.target.closest('.home-folder-card:not(.create-new)');
@@ -4688,6 +5218,32 @@
     }
 
     closeKebabMenu();
+
+    if (action === 'unpublish') {
+      // Best-effort: clear published_at in the DB AND remove the JSON snapshot
+      // from Storage so embeds 404 instead of returning stale data.
+      try {
+        await supabaseClient.from('tours').update({ published_at: null }).eq('id', tourId);
+      } catch (e) {
+        console.warn('[unpublish] published_at clear failed:', e);
+      }
+      try {
+        await unpublishTourConfig(tourId);
+      } catch (e) {
+        console.error('[unpublish] storage remove failed:', e);
+      }
+      // Mirror into local cache so the home view flips back to Draft.
+      const cached = tourListCache.find(t => t.id === tourId);
+      if (cached) cached.publishedAt = null;
+      if (state && state.id === tourId) {
+        state.publishedAt = null;
+        hasUnpublishedChanges = true;
+        if (typeof updatePublishButton === 'function') updatePublishButton();
+      }
+      showToast('Tour unpublished');
+      renderAll();
+      return;
+    }
 
     if (action === 'duplicate') {
       let dup;
@@ -5247,6 +5803,57 @@
     $drawer.classList.remove('active');
     $drawerBackdrop.classList.remove('active');
   }
+  // Publish-button caret → toggles the dropdown (Unpublish & stop embed).
+  const $embedCaretBtn = document.getElementById('embedCaretBtn');
+  const $publishMenu   = document.getElementById('publishMenu');
+  if ($embedCaretBtn && $publishMenu) {
+    $embedCaretBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      $publishMenu.classList.toggle('active');
+    });
+    $publishMenu.addEventListener('click', async e => {
+      e.stopPropagation();
+      const item = e.target.closest('[data-publish-action]');
+      if (!item) return;
+      const action = item.dataset.publishAction;
+      $publishMenu.classList.remove('active');
+      if (action === 'unpublish') {
+        if (!state || !state.id) return;
+        const ok = await showConfirm({
+          title: `Unpublish "${state.title || 'Untitled tour'}"?`,
+          message: 'The embed will stop loading this tour and visitors will see nothing. You can republish later.',
+          confirmText: 'Unpublish',
+          cancelText: 'Cancel',
+          danger: true,
+        });
+        if (!ok) return;
+        try {
+          await supabaseClient.from('tours').update({ published_at: null }).eq('id', state.id);
+        } catch (err) {
+          console.warn('[unpublish] published_at clear failed:', err);
+        }
+        try {
+          await unpublishTourConfig(state.id);
+        } catch (err) {
+          console.error('[unpublish] storage remove failed:', err);
+        }
+        state.publishedAt = null;
+        const cached = tourListCache.find(t => t.id === state.id);
+        if (cached) cached.publishedAt = null;
+        hasUnpublishedChanges = true;
+        updatePublishButton();
+        showToast('Tour unpublished');
+        if (currentView === 'home') renderHome();
+      }
+    });
+    // Click outside the menu/caret closes the menu.
+    document.addEventListener('click', e => {
+      if (!$publishMenu.classList.contains('active')) return;
+      if (e.target.closest('#publishMenu') || e.target.closest('#embedCaretBtn')) return;
+      $publishMenu.classList.remove('active');
+    });
+  }
+
   $embedBtn.addEventListener('click', async () => {
     if ($embedBtn.disabled) return;
 
@@ -5649,6 +6256,159 @@
       closeFolderModal();
     }
   });
+
+  // ----- Folder edit modal (create + edit) -----------------------------------
+  // `folderEditState` holds the in-progress draft. `editingId` is null for a
+  // new folder, or the id of the folder being edited.
+  const $folderEditModal  = document.getElementById('folderEditModal');
+  const $folderEditTitle  = document.getElementById('folderEditTitle');
+  const $folderEditName   = document.getElementById('folderEditName');
+  const $folderEditColors = document.getElementById('folderEditColors');
+  const $folderEditIcons  = document.getElementById('folderEditIcons');
+  const $folderEditClose  = document.getElementById('folderEditClose');
+  const $folderEditCancel = document.getElementById('folderEditCancel');
+  const $folderEditSave   = document.getElementById('folderEditSave');
+  const folderEditState = { id: null, name: '', color: FOLDER_COLOURS[0], icon: DEFAULT_FOLDER_ICON };
+
+  function renderFolderEditPickers() {
+    $folderEditColors.innerHTML = FOLDER_COLOURS.map(c => `
+      <button type="button" class="fe-color-swatch ${c === folderEditState.color ? 'selected' : ''}" data-color="${escapeAttr(c)}" style="background: ${escapeAttr(c)};" aria-label="Colour ${escapeAttr(c)}"></button>
+    `).join('');
+    $folderEditIcons.innerHTML = FOLDER_ICONS.map(k => `
+      <button type="button" class="fe-icon-btn ${k === folderEditState.icon ? 'selected' : ''}" data-icon="${escapeAttr(k)}" aria-label="Icon ${escapeAttr(k)}">${folderIconHtml(k)}</button>
+    `).join('');
+  }
+
+  function openFolderEditModal(folder) {
+    folderEditState.id    = folder ? folder.id : null;
+    folderEditState.name  = folder ? folder.name : '';
+    folderEditState.color = folder ? folder.color : FOLDER_COLOURS[Math.floor(Math.random() * FOLDER_COLOURS.length)];
+    folderEditState.icon  = folder ? folder.icon : DEFAULT_FOLDER_ICON;
+    $folderEditTitle.textContent = folder ? 'Edit folder' : 'New folder';
+    $folderEditName.value = folderEditState.name;
+    renderFolderEditPickers();
+    $folderEditModal.classList.add('active');
+    setTimeout(() => $folderEditName.focus(), 50);
+  }
+  function closeFolderEditModal() {
+    $folderEditModal.classList.remove('active');
+  }
+
+  $folderEditClose.addEventListener('click', closeFolderEditModal);
+  $folderEditCancel.addEventListener('click', closeFolderEditModal);
+  $folderEditName.addEventListener('input', e => { folderEditState.name = e.target.value; });
+  $folderEditColors.addEventListener('click', e => {
+    const btn = e.target.closest('.fe-color-swatch');
+    if (!btn) return;
+    folderEditState.color = btn.dataset.color;
+    renderFolderEditPickers();
+  });
+  $folderEditIcons.addEventListener('click', e => {
+    const btn = e.target.closest('.fe-icon-btn');
+    if (!btn) return;
+    folderEditState.icon = btn.dataset.icon;
+    renderFolderEditPickers();
+  });
+  $folderEditSave.addEventListener('click', async () => {
+    const name = (folderEditState.name || '').trim();
+    if (!name) {
+      $folderEditName.focus();
+      return;
+    }
+    $folderEditSave.disabled = true;
+    try {
+      if (folderEditState.id) {
+        await folderStore.update(folderEditState.id, {
+          name, color: folderEditState.color, icon: folderEditState.icon,
+        });
+        showToast('Folder updated');
+      } else {
+        await folderStore.create({
+          name, color: folderEditState.color, icon: folderEditState.icon,
+        });
+        showToast('Folder created');
+      }
+      await refreshFolderList();
+      renderHome();
+      closeFolderEditModal();
+    } catch (err) {
+      console.error('[folder] save failed:', err);
+      showToast('Could not save folder');
+    } finally {
+      $folderEditSave.disabled = false;
+    }
+  });
+  $folderEditName.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); $folderEditSave.click(); }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && $folderEditModal.classList.contains('active')) {
+      closeFolderEditModal();
+    }
+  });
+
+  // ----- Folder drag-and-drop reorder ----------------------------------------
+  // Cards are draggable; on drop we splice in the new order, persist via
+  // folderStore.setOrder, and re-render the home grid.
+  const $foldersGridEl = document.getElementById('homeFoldersGrid');
+  let folderDragId = null;
+  if ($foldersGridEl) {
+    $foldersGridEl.addEventListener('dragstart', e => {
+      const card = e.target.closest('.home-folder-card[data-folder-id]');
+      if (!card || card.classList.contains('create-new')) return;
+      folderDragId = card.dataset.folderId;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Some browsers require setData to actually fire drop events.
+      try { e.dataTransfer.setData('text/plain', folderDragId); } catch {}
+    });
+    $foldersGridEl.addEventListener('dragend', () => {
+      $foldersGridEl.querySelectorAll('.home-folder-card').forEach(el => {
+        el.classList.remove('dragging', 'drop-before', 'drop-after');
+      });
+      folderDragId = null;
+    });
+    $foldersGridEl.addEventListener('dragover', e => {
+      if (!folderDragId) return;
+      const card = e.target.closest('.home-folder-card[data-folder-id]');
+      if (!card || card.classList.contains('create-new')) return;
+      e.preventDefault();
+      $foldersGridEl.querySelectorAll('.home-folder-card').forEach(el => {
+        el.classList.remove('drop-before', 'drop-after');
+      });
+      const rect = card.getBoundingClientRect();
+      const before = (e.clientX - rect.left) < rect.width / 2;
+      card.classList.add(before ? 'drop-before' : 'drop-after');
+    });
+    $foldersGridEl.addEventListener('drop', async e => {
+      if (!folderDragId) return;
+      const card = e.target.closest('.home-folder-card[data-folder-id]');
+      if (!card || card.classList.contains('create-new')) return;
+      e.preventDefault();
+      const targetId = card.dataset.folderId;
+      const rect = card.getBoundingClientRect();
+      const before = (e.clientX - rect.left) < rect.width / 2;
+      const order = folderListCache.map(f => f.id);
+      const fromIdx = order.indexOf(folderDragId);
+      let toIdx = order.indexOf(targetId);
+      if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+      order.splice(fromIdx, 1);
+      // After removal, the target's index may have shifted by one
+      toIdx = order.indexOf(targetId);
+      if (!before) toIdx++;
+      order.splice(toIdx, 0, folderDragId);
+
+      // Optimistic local update + re-render, then persist.
+      folderListCache = order.map(id => folderListCache.find(f => f.id === id)).filter(Boolean);
+      folderListCache.forEach((f, i) => { f.position = i; });
+      renderHome();
+      try {
+        await folderStore.setOrder(order);
+      } catch (err) {
+        console.warn('[folders] reorder persist failed:', err);
+      }
+    });
+  }
 
   // =========================================================================
   // VIEW EDITOR — pan/zoom modal for setting per-step viewport
@@ -6156,6 +6916,21 @@
   // The auth check fires immediately on script load and (if a session exists)
   // calls applyAuthState → bootstrapTours → renderAll. If no session, the
   // login screen is shown and bootstrap runs after sign-in.
+</script>
+
+<!-- HDS Tour — meta-tutorial that walks users through the Tour Builder itself.
+     The floating FAB is hidden via CSS; we trigger it from the Tutorial nav
+     button instead by proxying a click. -->
+<link rel="stylesheet" href="https://hds-tours.vercel.app/hds-tour-lightbox.css" />
+<button id="hds-tour-fab" style="display:none !important;"></button>
+<script src="https://hds-tours.vercel.app/hds-tour-lightbox.js"></script>
+<script>
+  HDSTour.init({
+    configUrl: 'https://bybgngqhefkjcnotohtg.supabase.co/storage/v1/object/public/tour-configs/a8d269e4-f660-43b3-8946-cede1f8419ee.json'
+  });
+  document.getElementById('tutorialNavBtn')?.addEventListener('click', () => {
+    document.getElementById('hds-tour-fab')?.click();
+  });
 </script>
 
 </body>

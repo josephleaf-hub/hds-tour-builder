@@ -115,7 +115,7 @@ body.hds-tour-open { overflow: hidden; }
   width: min(80vw, calc(80vh * 3 / 2));
   aspect-ratio: 3 / 2;
   background: #FFFFFF;
-  border-radius: 16px;
+  border-radius: 20px;
   box-shadow: 0 32px 80px rgba(6, 13, 24, 0.5);
   display: flex;
   flex-direction: column;
