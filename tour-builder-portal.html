@@ -2485,7 +2485,11 @@
         .select()
         .single();
       if (error) throw error;
-      return this._fromDb(data);
+      const result = this._fromDb(data);
+      // Publish a JSON snapshot for embeds. Best-effort; don't fail the
+      // save if the storage write is slow or blocked.
+      publishTourConfig(result).catch(e => console.error('[publish] save failed:', e));
+      return result;
     },
 
     async create(title) {
@@ -2500,6 +2504,7 @@
       if (error) throw error;
       const tour = this._fromDb(data);
       this.setActiveId(tour.id);
+      publishTourConfig(tour).catch(e => console.error('[publish] create failed:', e));
       return tour;
     },
 
@@ -2517,6 +2522,7 @@
       if (error) throw error;
       const tour = this._fromDb(data);
       this.setActiveId(tour.id);
+      publishTourConfig(tour).catch(e => console.error('[publish] duplicate failed:', e));
       return tour;
     },
 
@@ -2526,6 +2532,9 @@
         .delete()
         .eq('id', id);
       if (error) throw error;
+      // Best-effort cleanup of the published JSON so embed URLs 404
+      // instead of returning stale data.
+      unpublishTourConfig(id).catch(e => console.error('[unpublish] failed:', e));
       // If we just deleted the active tour, fall back to the most recent
       // remaining one — or create a fresh starter if none left.
       if (this.activeId() === id) {
@@ -2546,6 +2555,43 @@
       if (error) throw error;
     },
   };
+
+  // =========================================================================
+  // EMBED PUBLISHING — write a public JSON snapshot of each tour to Storage
+  // so the lightbox runtime can fetch it via configUrl.
+  // =========================================================================
+  const TOUR_CONFIG_BUCKET = 'tour-configs';
+
+  async function publishTourConfig(tour) {
+    if (!tour || !tour.id) return;
+    // Only include steps that are actually displayable in a published tour.
+    const validSteps = (tour.steps || []).filter(s => s.image && s.title);
+    const config = { title: tour.title || 'Tour', steps: validSteps };
+    const blob = new Blob([JSON.stringify(config)], { type: 'application/json' });
+    const { error } = await supabaseClient.storage
+      .from(TOUR_CONFIG_BUCKET)
+      .upload(`${tour.id}.json`, blob, {
+        contentType: 'application/json',
+        upsert: true,
+        cacheControl: '60',
+      });
+    if (error) throw error;
+  }
+
+  async function unpublishTourConfig(id) {
+    if (!id) return;
+    const { error } = await supabaseClient.storage
+      .from(TOUR_CONFIG_BUCKET)
+      .remove([`${id}.json`]);
+    if (error) throw error;
+  }
+
+  function tourConfigUrl(tourId) {
+    const { data } = supabaseClient.storage
+      .from(TOUR_CONFIG_BUCKET)
+      .getPublicUrl(`${tourId}.json`);
+    return data && data.publicUrl ? data.publicUrl : '';
+  }
 
   // Cached list of all tours, used by renderNav and settings view for
   // synchronous rendering. Refresh after creates/duplicates/deletes/renames.
@@ -3227,17 +3273,8 @@
   }
 
   function renderSnippet() {
-    const validSteps = state.steps.filter(s => s.image && s.title);
-    const config = { title: state.title || 'Tour', steps: validSteps };
-    // Escape sequences that could prematurely close the surrounding script tag
-    // or HTML-comment-out subsequent content. Built from strings to avoid
-    // putting the literal sequences in this source file.
-    const closeScript = new RegExp('<' + '/script>', 'gi');
-    const htmlComment = new RegExp('<' + '!--', 'g');
-    const configJson = JSON.stringify(config, null, 2)
-      .replace(closeScript, '<\\/script>')
-      .replace(htmlComment, '<\\u0021--')
-      .split('\n').map((line, i) => i === 0 ? line : '    ' + line).join('\n');
+    if (!state || !state.id) return;
+    const configUrl = tourConfigUrl(state.id);
 
     $snippet.textContent =
 `<!-- HDS Tour — paste before </body> -->
@@ -3246,7 +3283,7 @@
 <script src="${settings.jsUrl}"><\/script>
 <script>
   HDSTour.init({
-    config: ${configJson}
+    configUrl: '${configUrl}'
   });
 <\/script>`;
   }
@@ -3937,8 +3974,18 @@
     $drawer.classList.remove('active');
     $drawerBackdrop.classList.remove('active');
   }
-  $embedBtn.addEventListener('click', () => {
+  $embedBtn.addEventListener('click', async () => {
     if ($embedBtn.disabled) return;
+    // Make sure the published JSON reflects the latest state before the
+    // user copies the embed snippet — flush any pending debounced save,
+    // then publish synchronously.
+    await flushPendingSave();
+    try {
+      await publishTourConfig(state);
+    } catch (e) {
+      console.error('[publish] embed-open failed:', e);
+      showToast('Could not publish tour — embed may show stale data');
+    }
     openDrawer();
   });
   $drawerClose.addEventListener('click', closeDrawer);
