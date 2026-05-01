@@ -515,11 +515,20 @@
     overflow-y: auto;
     padding: 40px 48px 64px;
   }
+  .body.home-view { grid-template-columns: 1fr; }
   .body.home-view .home-view-wrap { display: block; }
   .body.home-view .sidebar,
   .body.home-view .preview-stage,
   .body.home-view .edit-panel,
   .body.home-view main.preview-stage { display: none; }
+  /* On home view, hide editor-specific header controls (tour title input,
+     step count, auto-save badge, Preview, Publish). Keep brand + user info. */
+  body.view-home .title-input,
+  body.view-home .step-count,
+  body.view-home .header-divider,
+  body.view-home .saved-badge,
+  body.view-home #previewBtn,
+  body.view-home #embedBtn { display: none; }
 
   .home-page {
     max-width: 1100px;
@@ -3211,6 +3220,9 @@
     $navToggle.classList.toggle('pinned', navPinned);
     $body.classList.toggle('settings-view', currentView === 'settings');
     $body.classList.toggle('home-view', currentView === 'home');
+    // Document-level view class so we can target the header (which lives
+    // outside #body) for view-specific styling.
+    document.body.classList.toggle('view-home', currentView === 'home');
 
     // Toggle Home nav button active state with view
     const $homeNavBtn = document.getElementById('homeNavBtn');
