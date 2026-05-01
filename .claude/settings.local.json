@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git credential-osxkeychain *)",
+      "Bash(git config *)",
+      "Read(//Users/josephleaf/**)",
+      "Bash(security find-internet-password *)",
+      "Bash(security dump-keychain *)"
+    ]
+  }
+}
