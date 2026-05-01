@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>HDS Tour Builder</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --navy: #060D18; --blue: #1C64F2; --blue-hover: #1648C2;
@@ -2010,6 +2011,17 @@
 <div class="preview-modal-bg" id="previewModalBg"></div>
 
 <script>
+  // =========================================================================
+  // SUPABASE CLIENT
+  // =========================================================================
+  // Paste your project URL and anon key from Supabase → Project Settings → API.
+  // The anon key is safe to ship in client-side code — it relies on Row Level
+  // Security in the database to control what users can read/write.
+  const SUPABASE_URL = 'https://bybgngqhefkjcnotohtg.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5YmduZ3FoZWZramNub3RvaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NzIzMDQsImV4cCI6MjA5MzE0ODMwNH0.esCFVDxm1qEpPBF5b2c8VKt3h80EGhr_3hcEw59PsNA';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log('[supabase] client ready:', supabaseClient);
+
   // =========================================================================
   // DATA LAYER — abstraction so we can swap to a real DB later
   // =========================================================================
