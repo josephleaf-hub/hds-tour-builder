@@ -4486,6 +4486,10 @@
         urlInput.dispatchEvent(new Event('input', { bubbles: true }));
         urlInput.dispatchEvent(new Event('change', { bubbles: true }));
       }
+      // Re-render edit panel so the dropzone swaps to the thumbnail view.
+      // (input/change handlers update state + preview + sidebar, but don't
+      // rebuild the edit panel HTML.)
+      renderAll();
     } catch (e) {
       renderAll();
       showUploadError(document.getElementById('imageDropzone'),
