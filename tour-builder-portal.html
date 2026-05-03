@@ -674,6 +674,110 @@
   }
   .home-page-actions { display: flex; gap: 8px; }
 
+  /* --- Tutorial banner: prominent CTA at the top of home that opens the
+     in-app tutorial. On first visit (no `hds-tour-tutorial-seen` flag) it
+     gets a pulsing glow + NEW badge so users notice it. After dismissal
+     (the × button) it stays hidden permanently via localStorage. --- */
+  .home-tutorial-banner {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-hover));
+    color: #FFF;
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-tutorial-banner:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(28,100,242,0.35);
+  }
+  .home-tutorial-banner.first-time {
+    animation: hds-banner-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes hds-banner-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(28,100,242,0.55), var(--shadow-card); }
+    50%      { box-shadow: 0 0 0 10px rgba(28,100,242,0), 0 8px 24px rgba(28,100,242,0.4); }
+  }
+  .home-tutorial-banner.dismissed { display: none; }
+  .home-tutorial-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .home-tutorial-icon svg { width: 22px; height: 22px; }
+  .home-tutorial-content { flex: 1; min-width: 0; }
+  .home-tutorial-eyebrow {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    opacity: 0.85;
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .home-tutorial-new {
+    background: #FFF;
+    color: var(--blue);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 1px 6px;
+    border-radius: 999px;
+    display: none;
+  }
+  .home-tutorial-banner.first-time .home-tutorial-new { display: inline-block; }
+  .home-tutorial-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .home-tutorial-sub {
+    font-size: 12px;
+    margin: 2px 0 0;
+    opacity: 0.9;
+    line-height: 1.4;
+  }
+  .home-tutorial-cta {
+    background: #FFF;
+    color: var(--blue);
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: none;
+    font: 500 13px inherit;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .home-tutorial-cta:hover { background: var(--blue-pale); }
+  .home-tutorial-cta:active { transform: scale(0.97); }
+  .home-tutorial-cta svg { width: 14px; height: 14px; }
+  .home-tutorial-dismiss {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: #FFF;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.15s, background 0.15s;
+    padding: 0;
+  }
+  .home-tutorial-dismiss:hover { opacity: 1; background: rgba(255,255,255,0.22); }
+  .home-tutorial-dismiss svg { width: 12px; height: 12px; }
+
   /* --- KPI strip --- */
   .home-kpis {
     display: grid;
@@ -3224,6 +3328,31 @@
               New tour
             </button>
           </div>
+        </section>
+
+        <section class="home-tutorial-banner" id="homeTutorialBanner">
+          <div class="home-tutorial-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6"/>
+              <path d="M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <div class="home-tutorial-content">
+            <div class="home-tutorial-eyebrow">
+              <span>New here?</span>
+              <span class="home-tutorial-new">NEW</span>
+            </div>
+            <h3 class="home-tutorial-title">Take the 60-second tutorial</h3>
+            <p class="home-tutorial-sub">Walk through how to build, customise, and publish a tour in your app.</p>
+          </div>
+          <button class="home-tutorial-cta" type="button" id="homeTutorialCta">
+            Start tutorial
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="home-tutorial-dismiss" type="button" id="homeTutorialDismiss" aria-label="Dismiss">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </section>
 
         <section class="home-kpis">
@@ -6928,9 +7057,52 @@
   HDSTour.init({
     configUrl: 'https://bybgngqhefkjcnotohtg.supabase.co/storage/v1/object/public/tour-configs/a8d269e4-f660-43b3-8946-cede1f8419ee.json'
   });
-  document.getElementById('tutorialNavBtn')?.addEventListener('click', () => {
+  function launchHdsTutorial() {
     document.getElementById('hds-tour-fab')?.click();
-  });
+    // First-time pulse only fires until the user actually engages with the
+    // tutorial. After that, the banner stays visible (in case they want to
+    // replay it) but loses the eye-catching glow.
+    try { localStorage.setItem('hds-tour-tutorial-seen', '1'); } catch {}
+    document.getElementById('homeTutorialBanner')?.classList.remove('first-time');
+  }
+
+  document.getElementById('tutorialNavBtn')?.addEventListener('click', launchHdsTutorial);
+
+  // --- Home tutorial banner -------------------------------------------------
+  (function setupTutorialBanner() {
+    const banner  = document.getElementById('homeTutorialBanner');
+    const cta     = document.getElementById('homeTutorialCta');
+    const dismiss = document.getElementById('homeTutorialDismiss');
+    if (!banner) return;
+
+    let dismissed = false, seen = false;
+    try {
+      dismissed = localStorage.getItem('hds-tour-tutorial-banner-dismissed') === '1';
+      seen      = localStorage.getItem('hds-tour-tutorial-seen') === '1';
+    } catch {}
+
+    if (dismissed) {
+      banner.classList.add('dismissed');
+      return;
+    }
+    if (!seen) banner.classList.add('first-time');
+
+    // Click anywhere on the banner (or the CTA) launches the tutorial — except
+    // the dismiss × button, which has its own handler and stops propagation.
+    banner.addEventListener('click', e => {
+      if (e.target.closest('#homeTutorialDismiss')) return;
+      launchHdsTutorial();
+    });
+    cta?.addEventListener('click', e => {
+      e.stopPropagation();
+      launchHdsTutorial();
+    });
+    dismiss?.addEventListener('click', e => {
+      e.stopPropagation();
+      banner.classList.add('dismissed');
+      try { localStorage.setItem('hds-tour-tutorial-banner-dismissed', '1'); } catch {}
+    });
+  })();
 </script>
 
 </body>
