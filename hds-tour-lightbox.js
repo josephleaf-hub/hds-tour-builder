@@ -33,11 +33,13 @@
 
     init: function (options) {
       options = options || {};
+      this.options = options;
 
       const setup = (config) => {
         this.config = config;
         this.buildLightbox();
         this.bindFab();
+        this.maybeShowNudge();
       };
 
       if (options.config) {
@@ -73,6 +75,81 @@
       }
       fab.addEventListener('click', () => this.open());
       setTimeout(() => fab.classList.add('no-pulse'), 8000);
+    },
+
+    // Storage key per tour — uses configUrl if available (most stable),
+    // falls back to a config id/title so inline-config embeds also work.
+    nudgeStorageKey: function () {
+      const id = (this.options && this.options.configUrl) ||
+                 (this.config && (this.config.id || this.config.title)) ||
+                 'default';
+      return 'hds-tour-nudge-seen-' + id;
+    },
+
+    markNudgeSeen: function () {
+      try { localStorage.setItem(this.nudgeStorageKey(), '1'); } catch {}
+    },
+
+    // First-visit nudge: a small bubble above the FAB pointing to it. Only
+    // shown if (a) the FAB exists, (b) the user hasn't seen + dismissed it
+    // before for this tour, and (c) no other nudge is already in the DOM.
+    maybeShowNudge: function () {
+      if (!document.getElementById('hds-tour-fab')) return;
+      if (document.getElementById('hds-tour-nudge')) return;
+      let seen = false;
+      try { seen = localStorage.getItem(this.nudgeStorageKey()) === '1'; } catch {}
+      if (seen) return;
+
+      const nudge = document.createElement('div');
+      nudge.id = 'hds-tour-nudge';
+      nudge.className = 'hds-tour-nudge';
+      nudge.setAttribute('role', 'button');
+      nudge.setAttribute('aria-label', 'Take the tour');
+      nudge.innerHTML =
+        '<span class="hds-tour-nudge-icon">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M22 10v6"/>' +
+        '<path d="M2 10l10-5 10 5-10 5z"/>' +
+        '<path d="M6 12v5c3 3 9 3 12 0v-5"/>' +
+        '</svg>' +
+        '</span>' +
+        '<span class="hds-tour-nudge-text">' +
+        '<span class="hds-tour-nudge-title">New here? Take the tour</span>' +
+        '<span class="hds-tour-nudge-sub">A quick walkthrough of this page.</span>' +
+        '</span>' +
+        '<button class="hds-tour-nudge-dismiss" type="button" aria-label="Dismiss">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' +
+        '<line x1="18" y1="6" x2="6" y2="18"/>' +
+        '<line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+        '</button>';
+      document.body.appendChild(nudge);
+
+      const hide = () => {
+        nudge.classList.remove('show');
+        // Allow the fade-out before removing from DOM
+        setTimeout(() => nudge.remove(), 220);
+      };
+
+      nudge.addEventListener('click', (e) => {
+        if (e.target.closest('.hds-tour-nudge-dismiss')) return;
+        this.markNudgeSeen();
+        hide();
+        this.open();
+      });
+      nudge.querySelector('.hds-tour-nudge-dismiss').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.markNudgeSeen();
+        hide();
+      });
+
+      // Fade in after a 1.5s delay so we don't compete with the host page's
+      // own first-paint, and auto-hide after 12s if untouched.
+      setTimeout(() => nudge.classList.add('show'), 1500);
+      setTimeout(() => {
+        if (document.body.contains(nudge)) hide();
+      }, 13500);
     },
 
     buildLightbox: function () {
@@ -233,6 +310,12 @@
       this.currentStep = 0;
       this.elements.overlay.classList.add('active');
       document.body.classList.add('hds-tour-open');
+      // Tour was opened — mark the first-visit nudge as seen so it doesn't
+      // re-appear on the user's next visit, and tear down the bubble if
+      // it's still hanging around.
+      this.markNudgeSeen();
+      const existingNudge = document.getElementById('hds-tour-nudge');
+      if (existingNudge) existingNudge.remove();
 
       // Bump the view counter once per open. Best-effort — failures are
       // logged and ignored so a flaky network or a missing function in the

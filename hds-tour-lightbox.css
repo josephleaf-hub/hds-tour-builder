@@ -80,6 +80,109 @@
 }
 .hds-tour-fab:hover .hds-tour-fab-label { opacity: 1; }
 
+/* ============ FIRST-VISIT NUDGE BUBBLE ============
+   Compact prompt that points to the FAB on a user's first visit, so they
+   don't have to wonder what the floating button is for. Shown once per
+   tour (keyed by configUrl or config.id) and dismissed on click,
+   timeout, or via the × button. */
+.hds-tour-nudge {
+  position: fixed;
+  right: 24px;
+  bottom: 88px;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  background: linear-gradient(135deg, var(--hds-tour-blue), var(--hds-tour-blue-hover));
+  color: #fff;
+  border-radius: 14px;
+  padding: 12px 30px 12px 12px;
+  box-shadow: 0 10px 28px rgba(28, 100, 242, 0.35),
+              0 2px 6px rgba(28, 100, 242, 0.2);
+  z-index: 99;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s,
+              box-shadow 0.15s;
+  pointer-events: none;
+}
+.hds-tour-nudge.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  animation: hds-tour-nudge-pulse 2.6s ease-in-out infinite;
+}
+.hds-tour-nudge:hover {
+  box-shadow: 0 14px 36px rgba(28, 100, 242, 0.45),
+              0 4px 10px rgba(28, 100, 242, 0.25);
+  transform: translateY(-2px) scale(1);
+  animation: none;
+}
+@keyframes hds-tour-nudge-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(28, 100, 242, 0.45),
+                         0 10px 28px rgba(28, 100, 242, 0.35); }
+  50%      { box-shadow: 0 0 0 10px rgba(28, 100, 242, 0),
+                         0 14px 36px rgba(28, 100, 242, 0.45); }
+}
+/* Tail pointing toward the FAB below */
+.hds-tour-nudge::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  right: 18px;
+  width: 12px;
+  height: 12px;
+  background: var(--hds-tour-blue-hover);
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+.hds-tour-nudge-icon {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex; align-items: center; justify-content: center;
+}
+.hds-tour-nudge-icon svg { width: 16px; height: 16px; }
+.hds-tour-nudge-text { flex: 1; min-width: 0; }
+.hds-tour-nudge-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.hds-tour-nudge-sub {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+.hds-tour-nudge-dismiss {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.75;
+  transition: opacity 0.15s, background 0.15s;
+  padding: 0;
+  font-family: inherit;
+}
+.hds-tour-nudge-dismiss:hover { opacity: 1; background: rgba(255, 255, 255, 0.28); }
+.hds-tour-nudge-dismiss svg { width: 10px; height: 10px; }
+
+@media (max-width: 480px) {
+  .hds-tour-nudge { right: 16px; bottom: 76px; width: calc(100vw - 32px); max-width: 280px; }
+}
+
 /* ============ OVERLAY + BACKDROP ============ */
 .hds-tour-overlay {
   position: fixed;
