@@ -1,0 +1,53 @@
+/* ============================================================
+   HDS Design Tokens
+   ------------------------------------------------------------
+   Foundation layer for every HDS product. Always link this
+   stylesheet BEFORE hds-components.css. Defines:
+     - colour palette (blue/navy + greys + semantic pairs)
+     - shadow ramp
+     - base resets and body typography (Inter, 13px)
+   ============================================================ */
+
+:root {
+  /* Brand */
+  --navy:       #060D18;
+  --blue:       #1C64F2;
+  --blue-hover: #1648C2;
+  --blue-pale:  #EBF2FF;
+
+  /* Surfaces */
+  --bg-app:    #F4F6F8;
+  --bg-card:   #FFFFFF;
+  --bg-alt:    #F8F9FA;
+  --bg-input:  #F9FAFB;
+
+  /* Borders */
+  --border:        #E2E8EF;
+  --border-strong: #C8D4DF;
+
+  /* Text */
+  --text-1:  #0F1C2E;   /* primary */
+  --text-2:  #4A5568;   /* secondary */
+  --text-3:  #8A97A8;   /* tertiary / placeholder */
+  --caption: #6B7280;   /* small caps labels */
+
+  /* Semantic pairs */
+  --success:    #2E7D52;  --success-bg: #E8F5EE;
+  --warning:    #B45309;  --warning-bg: #FEF3C7;
+  --error:      #C0392B;  --error-bg:   #FDECEA;
+
+  /* Shadows */
+  --shadow-card:       0 1px 2px -1px rgba(0,0,0,0.10), 0 1px 3px 0 rgba(0,0,0,0.10);
+  --shadow-card-hover: 0 4px 8px -2px rgba(0,0,0,0.12), 0 2px 6px 0 rgba(0,0,0,0.10);
+}
+
+/* ---------- Base resets ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg-app);
+  color: var(--text-1);
+  font-size: 13px;
+}
